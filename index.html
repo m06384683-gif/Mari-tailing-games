@@ -1,0 +1,3624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrainSpark Typing — ひらめき＆バトルタイピング</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', '"Noto Sans JP"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', '"Fira Code"', 'ui-monospace', 'SFMono-Regular', 'monospace']
+          },
+          animation: {
+            shake: 'shake 0.25s cubic-bezier(.36,.07,.19,.97) both',
+            spark: 'spark 0.55s ease-out forwards',
+            float: 'float 3s ease-in-out infinite',
+            pop: 'pop 0.22s ease-out forwards',
+            enemyHurt: 'enemyHurt 0.28s ease-out',
+            damagePop: 'damagePop 0.65s ease-out forwards'
+          },
+          keyframes: {
+            shake: {
+              '10%, 90%': { transform: 'translate3d(-3px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(5px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-7px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(7px, 0, 0)' }
+            },
+            spark: {
+              '0%': { transform: 'scale(0.8)', opacity: '0' },
+              '40%': { transform: 'scale(1.08)', opacity: '1' },
+              '100%': { transform: 'scale(1)', opacity: '0' }
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-4px)' }
+            },
+            pop: {
+              '0%': { transform: 'scale(0.95)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' }
+            },
+            enemyHurt: {
+              '0%, 100%': { transform: 'translateX(0) scale(1)' },
+              '25%': { transform: 'translateX(-8px) scale(0.96)' },
+              '50%': { transform: 'translateX(8px) scale(1.04)' },
+              '75%': { transform: 'translateX(-4px) scale(0.98)' }
+            },
+            damagePop: {
+              '0%': { transform: 'translateY(6px) scale(0.75)', opacity: '0' },
+              '25%': { transform: 'translateY(-10px) scale(1.15)', opacity: '1' },
+              '100%': { transform: 'translateY(-36px) scale(0.95)', opacity: '0' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
+    }
+
+    .key-active {
+      transform: translateY(2px) scale(0.96) !important;
+      background-color: #f59e0b !important;
+      color: #0f172a !important;
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.65) !important;
+    }
+
+    .neon-card-battle {
+      box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.25), 0 20px 50px -15px rgba(15, 23, 42, 0.65);
+    }
+
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col selection:bg-amber-400 selection:text-slate-950 transition-colors duration-200">
+
+  <!-- IMEオン・オフ問わずPC物理打鍵を受け止める不可視入力フィールド -->
+  <input
+    id="universalInput"
+    type="text"
+    inputmode="latin"
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="off"
+    spellcheck="false"
+    aria-label="タイピング入力欄"
+    class="fixed -top-20 left-0 w-1 h-1 opacity-0 pointer-events-none"
+  />
+
+  <!-- ヘッダーバー -->
+  <header class="sticky top-0 z-30 backdrop-blur-md bg-white/85 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+      <!-- ブランドロゴ -->
+      <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-orange-500/25 animate-float">
+          💡
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold tracking-tight text-base sm:text-lg bg-clip-text text-transparent bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500">
+              BrainSpark
+            </span>
+            <span class="hidden md:inline-block text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
+              SPARK &amp; BATTLE
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+            ひらめき解答・バトル・問題作成・弱点分析
+          </p>
+        </div>
+      </div>
+
+      <!-- メイン画面切り替えタブ -->
+      <nav aria-label="メイン機能切り替え" class="flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0">
+        <button
+          id="navPlayBtn"
+          type="button"
+          class="px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm flex items-center gap-1"
+        >
+          <span>🎮</span>
+          <span>プレイ</span>
+        </button>
+        <button
+          id="navAnalysisBtn"
+          type="button"
+          class="px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1"
+        >
+          <span>📊</span>
+          <span class="hidden sm:inline">苦手分析</span>
+          <span id="navWeakCountBadge" class="hidden px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/40">0</span>
+        </button>
+        <button
+          id="navEditorBtn"
+          type="button"
+          class="px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1"
+        >
+          <span>✏️</span>
+          <span>問題作成</span>
+          <span id="navCustomCountBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-500 border border-amber-500/30">0</span>
+        </button>
+      </nav>
+
+      <!-- 右側ユーティリティコントロール群 -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- ショートカット一覧ボタン -->
+        <button
+          id="shortcutsModalBtn"
+          type="button"
+          title="ショートカットキー一覧 (?)"
+          class="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+        >
+          <span>?</span>
+          <span>KEYS</span>
+        </button>
+
+        <!-- 音量コントロール -->
+        <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <input
+            id="volumeSlider"
+            type="range"
+            min="0"
+            max="100"
+            value="75"
+            aria-label="効果音ボリューム"
+            class="w-16 accent-amber-500 cursor-pointer"
+          />
+          <span id="volumeValueLabel" class="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 w-8 text-right">75%</span>
+        </div>
+
+        <!-- 効果音ミュート切替 -->
+        <button
+          id="soundToggleBtn"
+          type="button"
+          title="効果音オン/オフ"
+          class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition"
+        >
+          <svg id="soundOnIcon" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+          </svg>
+          <svg id="soundOffIcon" class="w-4 h-4 sm:w-5 sm:h-5 hidden text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          </svg>
+        </button>
+
+        <!-- ダークモード切替 -->
+        <button
+          id="themeToggleBtn"
+          type="button"
+          title="ライト/ダークモード切替"
+          class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition"
+        >
+          <svg id="sunIcon" class="w-4 h-4 sm:w-5 sm:h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg id="moonIcon" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: プレイ画面（ひらめき練習＆敵を倒すバトルモード）              -->
+  <!-- ===================================================================== -->
+  <main id="playView" class="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4 sm:gap-5">
+
+    <!-- モード・テーマ・ルール設定バー -->
+    <section class="flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- ゲームモード切替（ひらめき練習 vs 敵を倒すバトル） -->
+        <div class="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <button
+            type="button"
+            data-gamemode="spark"
+            class="gamemode-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm"
+          >
+            💡 ひらめき練習
+          </button>
+          <button
+            type="button"
+            data-gamemode="battle"
+            class="gamemode-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          >
+            ⚔️ 敵を倒すモード
+          </button>
+        </div>
+
+        <!-- ジャンル選択 -->
+        <select
+          id="genreSelect"
+          aria-label="出題ジャンル"
+          class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400"
+        >
+          <option value="all">🎲 全ジャンル（自作含む）</option>
+          <option value="weakness">🎯 苦手キー克服</option>
+          <option value="riddle">🧩 なぞなぞ</option>
+          <option value="pattern">🔢 法則・穴埋め</option>
+          <option value="kanji">📜 難読・ことわざ</option>
+          <option value="association">🔗 連想クイズ</option>
+          <option value="custom_only">✨ 自作問題のみ</option>
+        </select>
+
+        <!-- ルール切替（10問 / 60秒 / 連続エンドレス） -->
+        <div class="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <button
+            type="button"
+            data-rule="10q"
+            class="rule-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm"
+          >
+            10問
+          </button>
+          <button
+            type="button"
+            data-rule="60s"
+            class="rule-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          >
+            60秒
+          </button>
+          <button
+            type="button"
+            data-rule="endless"
+            class="rule-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          >
+            連続∞
+          </button>
+        </div>
+      </div>
+
+      <!-- 便利アクションボタン群 -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button
+          id="pauseToggleBtn"
+          type="button"
+          disabled
+          title="一時停止 / 再開 (P)"
+          class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+        >
+          <span id="pauseIcon">⏸</span>
+          <span id="pauseLabel" class="hidden sm:inline">一時停止</span>
+        </button>
+
+        <button
+          id="shuffleDeckBtn"
+          type="button"
+          title="出題順をシャッフル"
+          class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+        >
+          <span>🔀</span>
+          <span class="hidden sm:inline">シャッフル</span>
+        </button>
+
+        <button
+          id="kbVisibilityBtn"
+          type="button"
+          title="オンスクリーンキーボード表示切替"
+          class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+        >
+          <span>⌨️</span>
+          <span class="hidden sm:inline">鍵盤</span>
+        </button>
+
+        <button
+          id="resetBtn"
+          type="button"
+          title="リセット (Esc)"
+          class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+        >
+          <span>↺</span>
+          <span>リセット</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- リアルタイム統計ダッシュボード -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+      <div class="bg-white dark:bg-slate-900/90 rounded-2xl p-3 border border-slate-200 dark:border-slate-800">
+        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400" id="progressLabel">問題進捗</div>
+        <div id="statProgress" class="text-base sm:text-lg font-mono font-extrabold text-slate-800 dark:text-white mt-0.5">1 / 10</div>
+      </div>
+      <div class="bg-white dark:bg-slate-900/90 rounded-2xl p-3 border border-slate-200 dark:border-slate-800">
+        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400" id="timerLabel">経過時間</div>
+        <div id="statTimer" class="text-base sm:text-lg font-mono font-extrabold text-slate-800 dark:text-white mt-0.5">0.0s</div>
+      </div>
+      <div class="bg-white dark:bg-slate-900/90 rounded-2xl p-3 border border-slate-200 dark:border-slate-800">
+        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">連続コンボ</div>
+        <div class="flex items-baseline gap-1.5 mt-0.5">
+          <span id="statCombo" class="text-base sm:text-lg font-mono font-extrabold text-amber-500">0</span>
+          <span class="text-[11px] font-bold text-amber-500/80">CHAIN</span>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900/90 rounded-2xl p-3 border border-slate-200 dark:border-slate-800">
+        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">スコア</div>
+        <div id="statScore" class="text-base sm:text-lg font-mono font-extrabold text-indigo-500 dark:text-indigo-400 mt-0.5">0</div>
+      </div>
+    </section>
+
+    <!-- 進捗 / 残り時間バー -->
+    <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+      <div id="topProgressBar" class="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 transition-all duration-150" style="width: 0%"></div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- 敵を倒すモード（バトル）専用ステータス＆モンスター表示パネル         -->
+    <!-- =================================================================== -->
+    <section id="battleHudPanel" class="hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/90 to-slate-900 text-white p-4 sm:p-5 border border-rose-500/30 shadow-lg">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- プレイヤーHP＆討伐情報 -->
+        <div class="w-full sm:w-64 space-y-2">
+          <div class="flex items-center justify-between text-xs font-extrabold">
+            <span class="px-2.5 py-0.5 rounded-full bg-indigo-500/25 text-indigo-200 border border-indigo-400/40 font-mono" id="battleWaveBadge">WAVE 1</span>
+            <span class="text-emerald-300 font-mono">HP <span id="playerHpText">100 / 100</span></span>
+          </div>
+          <div class="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+            <div id="playerHpBar" class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-200" style="width: 100%"></div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-300">
+            <span>撃破数: <strong id="battleDefeatedCount" class="text-amber-300">0</strong></span>
+            <span>獲得EXP: <strong id="battleExpCount" class="text-sky-300">0</strong></span>
+          </div>
+        </div>
+
+        <!-- モンスター中央表示＆ダメージポップアップ -->
+        <div class="relative flex flex-col items-center justify-center min-w-[170px]">
+          <div id="damagePopupLayer" class="pointer-events-none absolute -top-4 inset-x-0 flex flex-col items-center z-10"></div>
+          <div id="enemySpriteBox" class="text-5xl sm:text-6xl select-none drop-shadow-[0_0_16px_rgba(244,63,94,0.45)]">👾</div>
+          <div id="enemyNameLabel" class="mt-1 text-sm font-extrabold text-rose-200">スライム・スパーク</div>
+        </div>
+
+        <!-- 敵HP＆攻撃チャージゲージ -->
+        <div class="w-full sm:w-64 space-y-2.5">
+          <div>
+            <div class="flex items-center justify-between text-xs font-extrabold mb-1">
+              <span class="text-rose-300">ENEMY HP</span>
+              <span id="enemyHpText" class="font-mono text-rose-200">120 / 120</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+              <div id="enemyHpBar" class="h-full bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-150" style="width: 100%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-[11px] font-bold mb-1">
+              <span class="text-amber-300">⚠️ 敵の攻撃チャージ</span>
+              <span id="enemyChargeText" class="font-mono text-amber-300">0%</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+              <div id="enemyChargeBar" class="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-rose-600 transition-all duration-100" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- メインひらめき出題＆打鍵カード -->
+    <section id="typingCard" class="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-5 sm:p-8 min-h-[300px] sm:min-h-[330px] flex flex-col justify-between transition-colors">
+
+      <!-- ひらめき正解演出オーバーレイ -->
+      <div id="sparkEffectOverlay" class="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center opacity-0 bg-amber-400/10 backdrop-blur-[1px]">
+        <div class="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-black text-xl sm:text-2xl shadow-2xl flex items-center gap-2">
+          <span>⚡</span>
+          <span id="sparkBannerTitle">ピコーン！ひらめき正解！</span>
+          <span id="bonusToastText" class="ml-1 px-2.5 py-0.5 rounded-full bg-white/20 text-sm font-mono">+500pt</span>
+        </div>
+      </div>
+
+      <!-- 一時停止オーバーレイ -->
+      <div id="pauseOverlay" class="hidden absolute inset-0 z-20 bg-slate-950/75 backdrop-blur-md flex-col items-center justify-center p-6 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-3xl mb-3">⏸</div>
+        <h3 class="text-2xl font-black text-white">一時停止中</h3>
+        <p class="text-sm text-slate-300 mt-1 mb-5"><kbd class="px-2 py-0.5 rounded bg-slate-800 font-mono text-xs border border-slate-700">P</kbd> キーまたは下のボタンで再開できます。</p>
+        <div class="flex items-center gap-3">
+          <button id="resumeGameBtn" type="button" class="px-6 py-2.5 rounded-2xl font-extrabold text-sm bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-lg hover:brightness-105 transition">
+            ▶ 再開する
+          </button>
+          <button id="pauseRestartBtn" type="button" class="px-5 py-2.5 rounded-2xl font-extrabold text-sm bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition">
+            ↺ 最初から
+          </button>
+        </div>
+      </div>
+
+      <!-- スタート前オーバーレイ -->
+      <div id="startOverlay" class="absolute inset-0 z-10 bg-white/90 dark:bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center transition-opacity duration-200">
+        <div id="startHeroIcon" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl text-white shadow-lg shadow-orange-500/30 mb-4 animate-bounce">
+          💡
+        </div>
+        <h1 id="startOverlayTitle" class="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+          謎の答えをひらめいて、そのままローマ字タイプ！
+        </h1>
+        <p id="startOverlayDesc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-lg mt-2 leading-relaxed">
+          答えがわからない時は <kbd class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono text-xs border border-slate-300 dark:border-slate-700">Tab</kbd> キーで段階的にヒントが開きます。<br>
+          ノーヒントで早くひらめくほど<span class="text-amber-500 font-bold">「ひらめきボーナス」</span>を獲得！
+        </p>
+
+        <button
+          id="startTriggerBtn"
+          type="button"
+          class="mt-6 px-7 py-3.5 rounded-2xl font-extrabold text-sm sm:text-base bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white shadow-xl shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.99] transition flex items-center gap-2"
+        >
+          <span id="startBtnLabel">ゲームスタート</span>
+          <span class="text-xs font-mono bg-black/20 px-2 py-0.5 rounded-lg">[Space / Enter]</span>
+        </button>
+
+        <button
+          id="emptyCustomCreateBtn"
+          type="button"
+          class="hidden mt-5 px-6 py-3 rounded-2xl font-extrabold text-sm bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg hover:brightness-110 transition items-center gap-2"
+        >
+          <span>✏️</span>
+          <span>問題作成画面へ進む</span>
+        </button>
+      </div>
+
+      <!-- 問題ヘッダー（ジャンル・ボーナス状況・ヒントボタン・苦手タグ） -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span id="questionGenreBadge" class="px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/70">
+            🧩 なぞなぞ
+          </span>
+          <span id="weaknessTagBadge" class="hidden px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+            🎯 苦手キー優先
+          </span>
+          <span id="sparkBonusBadge" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60">
+            ✨ ひらめきLv.MAX (+500pt)
+          </span>
+        </div>
+
+        <button
+          id="hintBtn"
+          type="button"
+          class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-300/70 dark:border-amber-500/30 transition flex items-center gap-1.5"
+        >
+          <span>💡 ヒントを開く</span>
+          <kbd class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white/80 dark:bg-slate-900 border border-amber-300 dark:border-amber-700">Tab</kbd>
+        </button>
+      </div>
+
+      <!-- 問題文＆段階的ヒントエリア -->
+      <div class="my-4 sm:my-5 text-center space-y-3">
+        <h2 id="questionText" class="text-lg sm:text-2xl font-black text-slate-900 dark:text-white leading-snug">
+          問題文がここに表示されます
+        </h2>
+
+        <div id="hintBox" class="inline-flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
+          <span id="hintContentText">文字数: 〇〇〇（3文字）</span>
+        </div>
+      </div>
+
+      <!-- 回答ひらがなスロット＆打鍵ローマ字表示エリア -->
+      <div class="space-y-3">
+        <div id="kanaSlotsDisplay" class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-h-[44px]"></div>
+
+        <div class="flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950/80 rounded-2xl py-3 px-4 border border-slate-200 dark:border-slate-800">
+          <div id="romajiLineDisplay" class="font-mono text-base sm:text-xl tracking-wider min-h-[28px] flex items-center justify-center flex-wrap gap-1">
+            <span class="text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-sans">ひらめいた答えをローマ字でタイプ！（間違えたら Backspace で修正）</span>
+          </div>
+          <div class="mt-1.5 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-400 dark:text-slate-500">
+            <span>IMEオンでもそのまま英字入力OK</span>
+            <span>•</span>
+            <span><kbd class="font-mono">Backspace</kbd> 1文字削除</span>
+            <span>•</span>
+            <span><kbd class="font-mono">Tab</kbd> ヒント進行</span>
+            <span>•</span>
+            <span><kbd class="font-mono">P</kbd> 一時停止</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- JIS配列風オンスクリーンキーボードガイド -->
+    <section id="virtualKeyboardPanel" class="bg-white dark:bg-slate-900/90 rounded-3xl p-3 sm:p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+          <span>⌨️</span>
+          <span>JIS配列キーボードガイド（F・Jにホームポジション突起）</span>
+        </span>
+        <span id="nextKeyIndicator" class="text-[11px] font-mono font-bold text-amber-500">READY</span>
+      </div>
+      <div id="keyboardRows" class="space-y-1.5 select-none"></div>
+    </section>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: 苦手キー・ミス分析ダッシュボード画面                        -->
+  <!-- ===================================================================== -->
+  <main id="analysisView" class="hidden flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-7 space-y-5">
+    <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div>
+        <h1 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <span>📊</span>
+          <span>苦手キー・打鍵分析ダッシュボード</span>
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          プレイ中のヒット数・ミス回数から苦手キーを自動抽出し、優先出題で弱点を克服できます。
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          id="startWeaknessDrillBtn"
+          type="button"
+          class="px-4 py-2 rounded-2xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-md hover:brightness-105 transition"
+        >
+          🎯 苦手克服モードで特訓する
+        </button>
+        <button
+          id="resetKeyStatsBtn"
+          type="button"
+          class="px-3.5 py-2 rounded-2xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/15 hover:text-rose-500 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+        >
+          履歴リセット
+        </button>
+      </div>
+    </div>
+
+    <!-- 全体サマリーカード -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+        <div class="text-xs font-bold text-slate-500 dark:text-slate-400">総正解打鍵数</div>
+        <div id="statsTotalHits" class="text-2xl font-mono font-black text-emerald-500 mt-1">0</div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+        <div class="text-xs font-bold text-slate-500 dark:text-slate-400">総ミスタイプ数</div>
+        <div id="statsTotalMisses" class="text-2xl font-mono font-black text-rose-500 mt-1">0</div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
+        <div class="text-xs font-bold text-slate-500 dark:text-slate-400">総合正確率</div>
+        <div id="statsOverallAccuracy" class="text-2xl font-mono font-black text-indigo-400 mt-1">100%</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <!-- 苦手キー TOP 5 -->
+      <section class="lg:col-span-5 bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🔥</span>
+          <span>苦手キー TOP 5</span>
+        </h2>
+        <div id="topWeakKeysList" class="space-y-2"></div>
+      </section>
+
+      <!-- キーボードミスヒートマップ -->
+      <section class="lg:col-span-7 bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <span>🗺️</span>
+            <span>キー別ミス率ヒートマップ</span>
+          </h2>
+          <div class="flex items-center gap-2 text-[11px] font-bold">
+            <span class="px-2 py-0.5 rounded bg-rose-500/25 text-rose-300 border border-rose-500/40">要注意</span>
+            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">やや注意</span>
+            <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">安定</span>
+          </div>
+        </div>
+        <div id="heatmapKeyboardGrid" class="space-y-1.5 pt-1"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 3: 問題作成・管理エディタ画面                                    -->
+  <!-- ===================================================================== -->
+  <main id="editorView" class="hidden flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-7">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- 左カラム（7列）：問題作成フォーム＆リアルタイムプレビュー -->
+      <section class="lg:col-span-7 space-y-5">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h1 id="editorFormHeading" class="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>✨</span>
+                <span>オリジナル問題を作る</span>
+              </h1>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                作成した問題はブラウザに自動保存され、プレイ画面ですぐに遊べます。
+              </p>
+            </div>
+            <button
+              id="addSampleCustomBtn"
+              type="button"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:brightness-95 transition shrink-0"
+            >
+              + サンプル追加
+            </button>
+          </div>
+
+          <form id="customQuizForm" class="space-y-4">
+            <input type="hidden" id="editingQuizId" value="" />
+
+            <!-- ジャンル選択 -->
+            <div>
+              <label for="formGenre" class="block text-xs font-extrabold text-slate-700 dark:text-slate-300 mb-1.5">
+                ジャンル
+              </label>
+              <select
+                id="formGenre"
+                class="w-full px-3.5 py-2.5 rounded-xl text-sm font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                <option value="riddle">🧩 なぞなぞ</option>
+                <option value="pattern">🔢 法則・穴埋め</option>
+                <option value="kanji">📜 難読・ことわざ</option>
+                <option value="association">🔗 連想クイズ</option>
+              </select>
+            </div>
+
+            <!-- 問題文 -->
+            <div>
+              <label for="formQuestion" class="block text-xs font-extrabold text-slate-700 dark:text-slate-300 mb-1.5">
+                問題文 <span class="text-rose-500">*</span>
+              </label>
+              <textarea
+                id="formQuestion"
+                rows="2"
+                placeholder="例：パンはパンでも、食べられないパンはなーんだ？"
+                class="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              ></textarea>
+            </div>
+
+            <!-- 答え表記＆ひらがな読み -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label for="formDisplay" class="block text-xs font-extrabold text-slate-700 dark:text-slate-300 mb-1.5">
+                  答え・表記（漢字・カタカナ可） <span class="text-rose-500">*</span>
+                </label>
+                <input
+                  id="formDisplay"
+                  type="text"
+                  placeholder="例：フライパン"
+                  class="w-full px-3.5 py-2.5 rounded-xl text-sm font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+
+              <div>
+                <label for="formKana" class="block text-xs font-extrabold text-slate-700 dark:text-slate-300 mb-1.5">
+                  タイピング判定用の読み（ひらがな） <span class="text-rose-500">*</span>
+                </label>
+                <input
+                  id="formKana"
+                  type="text"
+                  placeholder="例：ふらいぱん（カタカナ入力も自動変換）"
+                  class="w-full px-3.5 py-2.5 rounded-xl text-sm font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+                <p id="kanaNormalizeHint" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 hidden"></p>
+              </div>
+            </div>
+
+            <!-- 連想ヒント -->
+            <div>
+              <label for="formHint" class="block text-xs font-extrabold text-slate-700 dark:text-slate-300 mb-1.5">
+                連想ヒント（Tabキー1段目で表示）
+              </label>
+              <input
+                id="formHint"
+                type="text"
+                placeholder="例：キッチンのコンロで料理するときに使う調理器具です"
+                class="w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+
+            <!-- バリデーションエラー表示 -->
+            <div id="editorErrorBox" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs font-bold"></div>
+
+            <!-- フォームアクションボタン群 -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  id="saveCustomQuizBtn"
+                  type="submit"
+                  class="px-5 py-2.5 rounded-2xl text-sm font-extrabold bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white shadow-md hover:brightness-105 transition flex items-center gap-1.5"
+                >
+                  <span>💾</span>
+                  <span id="saveQuizBtnLabel">問題を保存する</span>
+                </button>
+
+                <button
+                  id="testPlayCurrentBtn"
+                  type="button"
+                  class="px-4 py-2.5 rounded-2xl text-sm font-extrabold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition flex items-center gap-1.5"
+                >
+                  <span>🎯</span>
+                  <span>この問題を試し打ち</span>
+                </button>
+              </div>
+
+              <button
+                id="clearFormBtn"
+                type="button"
+                class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+              >
+                入力クリア / キャンセル
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- リアルタイムプレビューカード -->
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-amber-500">👁️ リアルタイムプレビュー</span>
+            <span id="previewKanaLengthBadge" class="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">0文字</span>
+          </div>
+
+          <div class="rounded-2xl bg-slate-50 dark:bg-slate-950 p-4 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div class="flex items-center gap-2">
+              <span id="previewGenreBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                🧩 なぞなぞ
+              </span>
+              <span id="previewCircles" class="text-xs font-mono text-slate-400">伏せ字: -</span>
+            </div>
+
+            <p id="previewQuestionText" class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+              問題文を入力するとここにプレビューされます
+            </p>
+
+            <div class="text-xs text-slate-600 dark:text-slate-300 space-y-1 pt-1 border-t border-slate-200/70 dark:border-slate-800/80">
+              <div><strong class="text-amber-500">ヒント1:</strong> <span id="previewHintText">-</span></div>
+              <div><strong class="text-emerald-500">答え開示:</strong> <span id="previewAnswerText">-</span></div>
+              <div><strong class="text-indigo-400">入力ガイド例:</strong> <code id="previewRomajiSample" class="font-mono text-indigo-400">-</code></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右カラム（5列）：自作問題一覧＆JSONバックアップ/共有 -->
+      <aside class="lg:col-span-5 space-y-4">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <span>📚</span>
+                <span>自作問題リスト</span>
+                <span id="customListCountLabel" class="px-2 py-0.5 rounded-full text-xs font-mono bg-amber-500/15 text-amber-500">0件</span>
+              </h2>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button
+                id="exportJsonBtn"
+                type="button"
+                title="JSONファイルで書き出し"
+                class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition"
+              >
+                📤 書き出し
+              </button>
+              <label
+                for="importJsonInput"
+                title="JSONファイルから読み込み"
+                class="cursor-pointer px-2.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition"
+              >
+                📥 読み込み
+              </label>
+              <input id="importJsonInput" type="file" accept=".json,application/json" class="hidden" />
+            </div>
+          </div>
+
+          <div id="customQuestionsList" class="space-y-2.5 max-h-[540px] overflow-y-auto pr-1"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- モーダル群（リザルト / 試し打ち / ショートカット一覧 / 確認ダイアログ） -->
+  <!-- ===================================================================== -->
+
+  <!-- リザルトモーダル -->
+  <div id="resultModal" class="hidden fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl animate-pop space-y-5 text-center">
+      <div>
+        <span id="resultBadgeLabel" class="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+          BRAIN SPARK RESULT
+        </span>
+        <h2 id="resultHeadingTitle" class="text-2xl font-black text-slate-900 dark:text-white mt-2">結果発表</h2>
+      </div>
+
+      <div class="py-2">
+        <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">RANK</div>
+        <div id="resultRank" class="text-5xl sm:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-amber-400 via-orange-500 to-pink-500">
+          S
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-left">
+        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <div class="text-[11px] font-bold text-slate-400">トータルスコア</div>
+          <div id="resultScore" class="text-xl font-mono font-black text-indigo-500 dark:text-indigo-400 mt-0.5">0</div>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <div class="text-[11px] font-bold text-slate-400">打鍵スピード</div>
+          <div id="resultKpm" class="text-xl font-mono font-black text-emerald-500 mt-0.5">0 KPM</div>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <div id="resultPrimaryMetricLabel" class="text-[11px] font-bold text-slate-400">正解数</div>
+          <div id="resultSolved" class="text-xl font-mono font-black text-slate-800 dark:text-white mt-0.5">0問</div>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <div id="resultSecondaryMetricLabel" class="text-[11px] font-bold text-slate-400">自力ひらめき</div>
+          <div id="resultSparkCount" class="text-xl font-mono font-black text-amber-500 mt-0.5">0回</div>
+        </div>
+      </div>
+
+      <div class="text-xs font-bold text-slate-500 dark:text-slate-400">
+        最大連続コンボ: <span id="resultMaxCombo" class="font-mono text-amber-500">0</span> CHAIN
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2.5 pt-1">
+        <button
+          id="retryGameBtn"
+          type="button"
+          class="flex-1 py-3 px-4 rounded-2xl font-extrabold text-sm bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white shadow-lg hover:brightness-105 transition"
+        >
+          もう一度遊ぶ [Enter]
+        </button>
+        <button
+          id="resultCreateBtn"
+          type="button"
+          class="py-3 px-4 rounded-2xl font-extrabold text-sm bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition"
+        >
+          ✏️ 問題を作る
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 試し打ちテストプレイモーダル -->
+  <div id="testPlayModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm items-center justify-center p-4">
+    <div id="testPlayCard" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl animate-pop space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+          🎯 試し打ちモード
+        </span>
+        <button
+          id="closeTestPlayBtn"
+          type="button"
+          class="px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+        >
+          閉じる [Esc]
+        </button>
+      </div>
+
+      <div class="text-center space-y-2 py-2">
+        <h3 id="testPlayQuestion" class="text-lg sm:text-xl font-black text-slate-900 dark:text-white"></h3>
+        <p id="testPlayHintText" class="text-xs sm:text-sm font-bold text-amber-500"></p>
+      </div>
+
+      <div id="testPlaySlots" class="flex flex-wrap items-center justify-center gap-1.5 min-h-[42px]"></div>
+
+      <div class="rounded-2xl bg-slate-50 dark:bg-slate-950 p-3.5 border border-slate-200 dark:border-slate-800 text-center">
+        <div id="testPlayRomaji" class="font-mono text-base sm:text-lg min-h-[26px]"></div>
+        <div class="text-[11px] text-slate-400 mt-1">
+          <kbd class="font-mono">Tab</kbd> でヒント進行 • <kbd class="font-mono">Backspace</kbd> で1文字削除 • <kbd class="font-mono">Esc</kbd> で終了
+        </div>
+      </div>
+
+      <div id="testPlaySuccessBanner" class="hidden p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-center font-extrabold text-sm">
+        🎉 正解クリア！ローマ字判定はバッチリです！
+      </div>
+
+      <div class="flex justify-center gap-2.5">
+        <button
+          id="testPlayHintBtn"
+          type="button"
+          class="px-4 py-2 rounded-xl text-xs font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition"
+        >
+          💡 ヒント進行 [Tab]
+        </button>
+        <button
+          id="testPlayRetryBtn"
+          type="button"
+          class="px-4 py-2 rounded-xl text-xs font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+        >
+          ↺ やり直す
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ショートカット一覧モーダル -->
+  <div id="shortcutsModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-pop space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <span>⌨️</span>
+          <span>キーボードショートカット</span>
+        </h3>
+        <button id="closeShortcutsBtn" type="button" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-500">✕</button>
+      </div>
+      <div class="space-y-2 text-xs sm:text-sm">
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-600 dark:text-slate-300">ゲーム開始 / リトライ</span>
+          <kbd class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono font-bold">Space / Enter</kbd>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-600 dark:text-slate-300">ヒントを段階表示</span>
+          <kbd class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono font-bold">Tab</kbd>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-600 dark:text-slate-300">ひらめき入力の1文字削除</span>
+          <kbd class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono font-bold">Backspace</kbd>
+        </div>
+        <div class="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
+          <span class="text-slate-600 dark:text-slate-300">一時停止 / 再開</span>
+          <kbd class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono font-bold">P</kbd>
+        </div>
+        <div class="flex items-center justify-between py-1.5">
+          <span class="text-slate-600 dark:text-slate-300">ゲームリセット / モーダル閉じる</span>
+          <kbd class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono font-bold">Esc</kbd>
+        </div>
+      </div>
+      <button id="closeShortcutsBottomBtn" type="button" class="w-full py-2.5 rounded-2xl text-xs font-extrabold bg-amber-500 text-slate-950 hover:brightness-105 transition">
+        閉じる
+      </button>
+    </div>
+  </div>
+
+  <!-- 汎用確認モーダル（window.confirm 代替） -->
+  <div id="confirmDialogModal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-pop space-y-4">
+      <h3 id="confirmDialogTitle" class="text-lg font-black text-slate-900 dark:text-white">確認</h3>
+      <p id="confirmDialogMessage" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed"></p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="confirmCancelBtn" type="button" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+          キャンセル
+        </button>
+        <button id="confirmOkBtn" type="button" class="px-4 py-2 rounded-xl text-xs font-extrabold bg-rose-500 text-white hover:bg-rose-600 transition">
+          実行する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toastBanner" class="fixed bottom-5 right-5 z-50 pointer-events-none opacity-0 translate-y-2 transition-all duration-200 px-4 py-2.5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs sm:text-sm font-extrabold shadow-xl"></div>
+
+  <script>
+    /**
+     * =========================================================================
+     * 1. Web Audio API 効果音エンジン（外部音源なし・音量スライダー対応）
+     * =========================================================================
+     */
+    class SoundEffects {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.volume = 0.75; // 0.0 〜 1.0
+      }
+
+      ensureContext() {
+        if (!this.enabled || this.volume <= 0) return;
+        try {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+              this.ctx = new AudioCtx();
+            }
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        } catch (e) {
+          // 音声非対応環境でもエラーで停止させない
+        }
+      }
+
+      setVolume(percent) {
+        this.volume = Math.max(0, Math.min(1, Number(percent) / 100));
+      }
+
+      getGainScale() {
+        return this.enabled ? this.volume : 0;
+      }
+
+      playKey() {
+        const scale = this.getGainScale();
+        if (scale <= 0) return;
+        try {
+          this.ensureContext();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(540 + Math.random() * 90, now);
+          osc.frequency.exponentialRampToValueAtTime(220, now + 0.035);
+          gain.gain.setValueAtTime(0.08 * scale, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.045);
+        } catch (e) {}
+      }
+
+      playHint() {
+        const scale = this.getGainScale();
+        if (scale <= 0) return;
+        try {
+          this.ensureContext();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(660, now);
+          osc.frequency.setValueAtTime(880, now + 0.07);
+          gain.gain.setValueAtTime(0.1 * scale, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.19);
+        } catch (e) {}
+      }
+
+      playAttackHit(isCritical = false) {
+        const scale = this.getGainScale();
+        if (scale <= 0) return;
+        try {
+          this.ensureContext();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = isCritical ? 'sawtooth' : 'square';
+          osc.frequency.setValueAtTime(isCritical ? 320 : 190, now);
+          osc.frequency.exponentialRampToValueAtTime(isCritical ? 780 : 95, now + (isCritical ? 0.14 : 0.06));
+          gain.gain.setValueAtTime((isCritical ? 0.14 : 0.06) * scale, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + (isCritical ? 0.16 : 0.07));
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + (isCritical ? 0.17 : 0.08));
+        } catch (e) {}
+      }
+
+      playEnemyDefeated() {
+        const scale = this.getGainScale();
+        if (scale <= 0) return;
+        try {
+          this.ensureContext();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const notes = [440, 554.37, 659.25, 880];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            const t = now + idx * 0.06;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.12 * scale, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.19);
+          });
+        } catch (e) {}
+      }
+
+      playSparkCorrect(isHighSpark = true) {
+        const scale = this.getGainScale();
+        if (scale <= 0) return;
+        try {
+          this.ensureContext();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const notes = isHighSpark ? [587.33, 880, 1174.66] : [523.25, 659.25, 783.99];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            const start = now + idx * 0.055;
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0.12 * scale, start);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.23);
+          });
+        } catch (e) {}
+      }
+
+      playMiss() {
+        const scale = this.getGainScale();
+        if (scale <= 0) return;
+        try {
+          this.ensureContext();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(155, now);
+          osc.frequency.linearRampToValueAtTime(115, now + 0.09);
+          gain.gain.setValueAtTime(0.14 * scale, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.11);
+        } catch (e) {}
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 2. 物理キーボード入力正規化＆ローマ字→ひらがなリアルタイム変換エンジン
+     * =========================================================================
+     */
+    const FULLWIDTH_TO_ASCII_MAP = {
+      'ａ': 'a', 'ｂ': 'b', 'ｃ': 'c', 'ｄ': 'd', 'ｅ': 'e', 'ｆ': 'f', 'ｇ': 'g',
+      'ｈ': 'h', 'ｉ': 'i', 'ｊ': 'j', 'ｋ': 'k', 'ｌ': 'l', 'ｍ': 'm', 'ｎ': 'n',
+      'ｏ': 'o', 'ｐ': 'p', 'ｑ': 'q', 'ｒ': 'r', 'ｓ': 's', 'ｔ': 't', 'ｕ': 'u',
+      'ｖ': 'v', 'ｗ': 'w', 'ｘ': 'x', 'ｙ': 'y', 'ｚ': 'z',
+      '０': '0', '１': '1', '２': '2', '３': '3', '４': '4',
+      '５': '5', '６': '6', '７': '7', '８': '8', '９': '9',
+      '－': '-', 'ー': '-'
+    };
+
+    function normalizeKeyInput(rawChar) {
+      if (!rawChar || typeof rawChar !== 'string') return '';
+      let out = '';
+      for (const ch of rawChar) {
+        if (FULLWIDTH_TO_ASCII_MAP[ch]) {
+          out += FULLWIDTH_TO_ASCII_MAP[ch];
+        } else if (/^[a-zA-Z0-9\-]$/.test(ch)) {
+          out += ch.toLowerCase();
+        }
+      }
+      return out;
+    }
+
+    function normalizeKatakanaToHiragana(str) {
+      if (!str || typeof str !== 'string') return '';
+      return str.replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60)).trim();
+    }
+
+    const ROMAJI_TO_KANA_TABLE = [
+      ['sha', 'しゃ'], ['shi', 'し'], ['shu', 'しゅ'], ['she', 'しぇ'], ['sho', 'しょ'],
+      ['sya', 'しゃ'], ['syi', 'しぃ'], ['syu', 'しゅ'], ['sye', 'しぇ'], ['syo', 'しょ'],
+      ['cha', 'ちゃ'], ['chi', 'ち'], ['chu', 'ちゅ'], ['che', 'ちぇ'], ['cho', 'ちょ'],
+      ['tya', 'ちゃ'], ['tyi', 'ちぃ'], ['tyu', 'ちゅ'], ['tye', 'ちぇ'], ['tyo', 'ちょ'],
+      ['cya', 'ちゃ'], ['cyi', 'ちぃ'], ['cyu', 'ちゅ'], ['cye', 'ちぇ'], ['cyo', 'ちょ'],
+      ['tsu', 'つ'], ['tsa', 'つぁ'], ['tsi', 'つぃ'], ['tse', 'つぇ'], ['tso', 'つぉ'],
+      ['tha', 'てゃ'], ['thi', 'てぃ'], ['thu', 'てゅ'], ['the', 'てぇ'], ['tho', 'てょ'],
+      ['dha', 'でゃ'], ['dhi', 'でぃ'], ['dhu', 'でゅ'], ['dhe', 'でぇ'], ['dho', 'でょ'],
+      ['dwa', 'どぁ'], ['dwi', 'どぃ'], ['dwu', 'どぅ'], ['dwe', 'どぇ'], ['dwo', 'どぉ'],
+      ['twa', 'とぁ'], ['twi', 'とぃ'], ['twu', 'とぅ'], ['twe', 'とぇ'], ['two', 'とぉ'],
+      ['fa', 'ふぁ'], ['fi', 'ふぃ'], ['fu', 'ふ'], ['fe', 'ふぇ'], ['fo', 'ふぉ'],
+      ['fya', 'ふゃ'], ['fyu', 'ふゅ'], ['fyo', 'ふょ'],
+      ['ja', 'じゃ'], ['ji', 'じ'], ['ju', 'じゅ'], ['je', 'じぇ'], ['jo', 'じょ'],
+      ['jya', 'じゃ'], ['jyi', 'じぃ'], ['jyu', 'じゅ'], ['jye', 'じぇ'], ['jyo', 'じょ'],
+      ['zya', 'じゃ'], ['zyi', 'じぃ'], ['zyu', 'じゅ'], ['zye', 'じぇ'], ['zyo', 'じょ'],
+      ['kya', 'きゃ'], ['kyi', 'きぃ'], ['kyu', 'きゅ'], ['kye', 'きぇ'], ['kyo', 'きょ'],
+      ['gya', 'ぎゃ'], ['gyi', 'ぎぃ'], ['gyu', 'ぎゅ'], ['gye', 'ぎぇ'], ['gyo', 'ぎょ'],
+      ['nya', 'にゃ'], ['nyi', 'にぃ'], ['nyu', 'にゅ'], ['nye', 'にぇ'], ['nyo', 'にょ'],
+      ['hya', 'ひゃ'], ['hyi', 'ひぃ'], ['hyu', 'ひゅ'], ['hye', 'ひぇ'], ['hyo', 'ひょ'],
+      ['bya', 'びゃ'], ['byi', 'びぃ'], ['byu', 'びゅ'], ['bye', 'びぇ'], ['byo', 'びょ'],
+      ['pya', 'ぴゃ'], ['pyi', 'ぴぃ'], ['pyu', 'ぴゅ'], ['pye', 'ぴぇ'], ['pyo', 'ぴょ'],
+      ['mya', 'みゃ'], ['myi', 'みぃ'], ['myu', 'みゅ'], ['mye', 'みぇ'], ['myo', 'みょ'],
+      ['rya', 'りゃ'], ['ryi', 'りぃ'], ['ryu', 'りゅ'], ['rye', 'りぇ'], ['ryo', 'りょ'],
+      ['va', 'ゔぁ'], ['vi', 'ゔぃ'], ['vu', 'ゔ'], ['ve', 'ゔぇ'], ['vo', 'ゔぉ'],
+      ['wha', 'うぁ'], ['whi', 'うぃ'], ['whu', 'う'], ['whe', 'うぇ'], ['who', 'うぉ'],
+      ['xa', 'ぁ'], ['xi', 'ぃ'], ['xu', 'ぅ'], ['xe', 'ぇ'], ['xo', 'ぉ'],
+      ['la', 'ぁ'], ['li', 'ぃ'], ['lu', 'ぅ'], ['le', 'ぇ'], ['lo', 'ぉ'],
+      ['xtu', 'っ'], ['xtsu', 'っ'], ['ltu', 'っ'], ['ltsu', 'っ'],
+      ['xya', 'ゃ'], ['lya', 'ゃ'], ['xyu', 'ゅ'], ['lyu', 'ゅ'], ['xyo', 'ょ'], ['lyo', 'ょ'],
+      ['xwa', 'ゎ'], ['lwa', 'ゎ'],
+      ['ka', 'か'], ['ki', 'き'], ['ku', 'く'], ['ke', 'け'], ['ko', 'こ'],
+      ['ga', 'が'], ['gi', 'ぎ'], ['gu', 'ぐ'], ['ge', 'げ'], ['go', 'ご'],
+      ['sa', 'さ'], ['si', 'し'], ['su', 'す'], ['se', 'せ'], ['so', 'そ'],
+      ['za', 'ざ'], ['zi', 'じ'], ['zu', 'ず'], ['ze', 'ぜ'], ['zo', 'ぞ'],
+      ['ta', 'た'], ['ti', 'ち'], ['tu', 'つ'], ['te', 'て'], ['to', 'と'],
+      ['da', 'だ'], ['di', 'ぢ'], ['du', 'づ'], ['de', 'で'], ['do', 'ど'],
+      ['na', 'な'], ['ni', 'に'], ['nu', 'ぬ'], ['ne', 'ね'], ['no', 'の'],
+      ['ha', 'は'], ['hi', 'ひ'], ['hu', 'ふ'], ['he', 'へ'], ['ho', 'ほ'],
+      ['ba', 'ば'], ['bi', 'び'], ['bu', 'ぶ'], ['be', 'べ'], ['bo', 'ぼ'],
+      ['pa', 'ぱ'], ['pi', 'ぴ'], ['pu', 'ぷ'], ['pe', 'ぺ'], ['po', 'ぽ'],
+      ['ma', 'ま'], ['mi', 'み'], ['mu', 'む'], ['me', 'め'], ['mo', 'も'],
+      ['ya', 'や'], ['yu', 'ゆ'], ['yo', 'よ'],
+      ['ra', 'ら'], ['ri', 'り'], ['ru', 'る'], ['re', 'れ'], ['ro', 'ろ'],
+      ['wa', 'わ'], ['wo', 'を'], ['nn', 'ん'], ['n\'', 'ん'],
+      ['a', 'あ'], ['i', 'い'], ['u', 'う'], ['e', 'え'], ['o', 'お'],
+      ['-', 'ー'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'],
+      ['5', '5'], ['6', '6'], ['7', '7'], ['8', '8'], ['9', '9']
+    ];
+
+    const VOWELS = new Set(['a', 'i', 'u', 'e', 'o']);
+
+    function convertRomajiBufferToKana(buffer) {
+      let result = '';
+      let i = 0;
+      const len = buffer.length;
+
+      while (i < len) {
+        const ch = buffer[i];
+
+        if (i + 1 < len && ch === buffer[i + 1] && !VOWELS.has(ch) && ch !== 'n') {
+          result += 'っ';
+          i += 1;
+          continue;
+        }
+
+        if (ch === 'n') {
+          if (i + 1 === len) {
+            break;
+          }
+          const next = buffer[i + 1];
+          if (next === 'n' || next === '\'') {
+            result += 'ん';
+            i += 2;
+            continue;
+          }
+          if (!VOWELS.has(next) && next !== 'y') {
+            result += 'ん';
+            i += 1;
+            continue;
+          }
+        }
+
+        let matched = null;
+        for (const [romaji, kana] of ROMAJI_TO_KANA_TABLE) {
+          if (buffer.startsWith(romaji, i)) {
+            matched = { romaji, kana };
+            break;
+          }
+        }
+
+        if (matched) {
+          result += matched.kana;
+          i += matched.romaji.length;
+        } else {
+          i += 1;
+        }
+      }
+
+      return result;
+    }
+
+    /**
+     * =========================================================================
+     * 3. ヒント全開示時用：ガイド付きローマ字トラッカー
+     * =========================================================================
+     */
+    const KANA_CHOICES = {
+      'あ': ['a'], 'い': ['i', 'yi'], 'う': ['u', 'wu', 'whu'], 'え': ['e'], 'お': ['o'],
+      'か': ['ka', 'ca'], 'き': ['ki'], 'く': ['ku', 'cu', 'qu'], 'け': ['ke'], 'こ': ['ko', 'co'],
+      'さ': ['sa'], 'し': ['shi', 'si', 'ci'], 'す': ['su'], 'せ': ['se', 'ce'], 'そ': ['so'],
+      'た': ['ta'], 'ち': ['chi', 'ti'], 'つ': ['tsu', 'tu'], 'て': ['te'], 'と': ['to'],
+      'な': ['na'], 'に': ['ni'], 'ぬ': ['nu'], 'ね': ['ne'], 'の': ['no'],
+      'は': ['ha'], 'ひ': ['hi'], 'ふ': ['fu', 'hu'], 'へ': ['he'], 'ほ': ['ho'],
+      'ま': ['ma'], 'み': ['mi'], 'む': ['mu'], 'め': ['me'], 'も': ['mo'],
+      'や': ['ya'], 'ゆ': ['yu'], 'よ': ['yo'],
+      'ら': ['ra'], 'り': ['ri'], 'る': ['ru'], 'れ': ['re'], 'ろ': ['ro'],
+      'わ': ['wa'], 'を': ['wo'], 'ん': ['nn', 'n'],
+      'が': ['ga'], 'ぎ': ['gi'], 'ぐ': ['gu'], 'げ': ['ge'], 'ご': ['go'],
+      'ざ': ['za'], 'じ': ['ji', 'zi'], 'ず': ['zu'], 'ぜ': ['ze'], 'ぞ': ['zo'],
+      'だ': ['da'], 'ぢ': ['di'], 'づ': ['du'], 'で': ['de'], 'ど': ['do'],
+      'ば': ['ba'], 'び': ['bi'], 'ぶ': ['bu'], 'べ': ['be'], 'ぼ': ['bo'],
+      'ぱ': ['pa'], 'ぴ': ['pi'], 'ぷ': ['pu'], 'ぺ': ['pe'], 'ぽ': ['po'],
+      'ゔ': ['vu'],
+      'ぁ': ['la', 'xa'], 'ぃ': ['li', 'xi'], 'ぅ': ['lu', 'xu'], 'ぇ': ['le', 'xe'], 'ぉ': ['lo', 'xo'],
+      'ゃ': ['lya', 'xya'], 'ゅ': ['lyu', 'xyu'], 'ょ': ['lyo', 'xyo'], 'ゎ': ['lwa', 'xwa'],
+      'ー': ['-'],
+      '0': ['0'], '1': ['1'], '2': ['2'], '3': ['3'], '4': ['4'],
+      '5': ['5'], '6': ['6'], '7': ['7'], '8': ['8'], '9': ['9']
+    };
+
+    const YOON_CHOICES = {
+      'きゃ': ['kya'], 'きぃ': ['kyi'], 'きゅ': ['kyu'], 'きぇ': ['kye'], 'きょ': ['kyo'],
+      'しゃ': ['sha', 'sya'], 'しぃ': ['syi'], 'しゅ': ['shu', 'syu'], 'しぇ': ['she', 'sye'], 'しょ': ['sho', 'syo'],
+      'ちゃ': ['cha', 'tya', 'cya'], 'ちぃ': ['tyi'], 'ちゅ': ['chu', 'tyu', 'cyu'], 'ちぇ': ['che', 'tye', 'cye'], 'ちょ': ['cho', 'tyo', 'cyo'],
+      'にゃ': ['nya'], 'にぃ': ['nyi'], 'にゅ': ['nyu'], 'にぇ': ['nye'], 'にょ': ['nyo'],
+      'ひゃ': ['hya'], 'ひぃ': ['hyi'], 'ひゅ': ['hyu'], 'ひぇ': ['hye'], 'ひょ': ['hyo'],
+      'みゃ': ['mya'], 'みぃ': ['myi'], 'みゅ': ['myu'], 'みぇ': ['mye'], 'みょ': ['myo'],
+      'りゃ': ['rya'], 'りぃ': ['ryi'], 'りゅ': ['ryu'], 'りぇ': ['rye'], 'りょ': ['ryo'],
+      'ぎゃ': ['gya'], 'ぎぃ': ['gyi'], 'ぎゅ': ['gyu'], 'ぎぇ': ['gye'], 'ぎょ': ['gyo'],
+      'じゃ': ['ja', 'jya', 'zya'], 'じぃ': ['jyi', 'zyi'], 'じゅ': ['ju', 'jyu', 'zyu'], 'じぇ': ['je', 'jye', 'zye'], 'じょ': ['jo', 'jyo', 'zyo'],
+      'びゃ': ['bya'], 'びぃ': ['byi'], 'びゅ': ['byu'], 'びぇ': ['bye'], 'びょ': ['byo'],
+      'ぴゃ': ['pya'], 'ぴぃ': ['pyi'], 'ぴゅ': ['pyu'], 'ぴぇ': ['pye'], 'ぴょ': ['pyo'],
+      'ふぁ': ['fa', 'fwa'], 'ふぃ': ['fi', 'fwi'], 'ふぇ': ['fe', 'fwe'], 'ふぉ': ['fo', 'fwo'],
+      'てぃ': ['thi'], 'でぃ': ['dhi'], 'とぅ': ['twu'], 'どぅ': ['dwu']
+    };
+
+    class GuidedRomajiTracker {
+      constructor(kanaText) {
+        this.kanaText = kanaText;
+        this.tokens = this.tokenizeKana(kanaText);
+        this.tokenIndex = 0;
+        this.charIndexInToken = 0;
+        this.activeCandidates = [];
+        this.typedHistory = '';
+        this.initTokenCandidates();
+      }
+
+      tokenizeKana(str) {
+        const tokens = [];
+        let i = 0;
+        while (i < str.length) {
+          if (str[i] === 'っ' && i + 1 < str.length) {
+            const pair = str.slice(i + 1, i + 3);
+            const nextChoices = YOON_CHOICES[pair] || KANA_CHOICES[str[i + 1]] || [str[i + 1]];
+            const sokuonChoices = [];
+            for (const c of nextChoices) {
+              const first = c[0];
+              if (first && !VOWELS.has(first) && first !== 'n') {
+                sokuonChoices.push(first);
+              }
+            }
+            if (sokuonChoices.length === 0) sokuonChoices.push('ltu', 'xtu');
+            tokens.push({ kana: 'っ', choices: Array.from(new Set(sokuonChoices)) });
+            i += 1;
+            continue;
+          }
+
+          if (i + 1 < str.length) {
+            const pair = str.slice(i, i + 2);
+            if (YOON_CHOICES[pair]) {
+              tokens.push({ kana: pair, choices: YOON_CHOICES[pair] });
+              i += 2;
+              continue;
+            }
+          }
+
+          const ch = str[i];
+          if (ch === 'ん') {
+            const nextCh = str[i + 1] || '';
+            const nextPair = str.slice(i + 1, i + 3);
+            const nextChoices = YOON_CHOICES[nextPair] || KANA_CHOICES[nextCh] || [];
+            const needsDoubleN = !nextCh || VOWELS.has(nextCh) || ['や', 'ゆ', 'よ', 'ゃ', 'ゅ', 'ょ', 'な', 'に', 'ぬ', 'ね', 'の', 'ん'].includes(nextCh) || nextChoices.some(c => VOWELS.has(c[0]) || c[0] === 'y' || c[0] === 'n');
+            tokens.push({ kana: 'ん', choices: needsDoubleN ? ['nn', "n'"] : ['n', 'nn'] });
+            i += 1;
+            continue;
+          }
+
+          tokens.push({ kana: ch, choices: KANA_CHOICES[ch] || [ch] });
+          i += 1;
+        }
+        return tokens;
+      }
+
+      initTokenCandidates() {
+        if (this.tokenIndex >= this.tokens.length) {
+          this.activeCandidates = [];
+          return;
+        }
+        this.activeCandidates = [...this.tokens[this.tokenIndex].choices];
+        this.charIndexInToken = 0;
+      }
+
+      isFinished() {
+        return this.tokenIndex >= this.tokens.length;
+      }
+
+      inputChar(rawChar) {
+        if (this.isFinished()) return false;
+        const ch = normalizeKeyInput(rawChar);
+        if (!ch || ch.length !== 1) return false;
+
+        const filtered = this.activeCandidates.filter(cand => cand[this.charIndexInToken] === ch);
+        if (filtered.length === 0) return false;
+
+        this.typedHistory += ch;
+        this.charIndexInToken++;
+
+        const completed = filtered.filter(cand => cand.length === this.charIndexInToken);
+        if (completed.length > 0) {
+          this.tokenIndex++;
+          this.initTokenCandidates();
+        } else {
+          this.activeCandidates = filtered;
+        }
+        return true;
+      }
+
+      getDisplayParts() {
+        let remaining = '';
+        if (!this.isFinished() && this.activeCandidates.length > 0) {
+          remaining += this.activeCandidates[0].slice(this.charIndexInToken);
+        }
+        for (let t = this.tokenIndex + 1; t < this.tokens.length; t++) {
+          remaining += this.tokens[t].choices[0];
+        }
+
+        let completedKanaCount = 0;
+        for (let t = 0; t < this.tokenIndex; t++) {
+          completedKanaCount += this.tokens[t].kana.length;
+        }
+
+        return {
+          typed: this.typedHistory,
+          remaining,
+          nextChar: remaining.length > 0 ? remaining[0] : '',
+          completedKanaCount
+        };
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 4. クイズデータベース（4ジャンル・全44問）＆バトル敵テンプレート
+     * =========================================================================
+     */
+    const GENRE_LABELS = {
+      riddle: '🧩 なぞなぞ',
+      pattern: '🔢 法則・穴埋め',
+      kanji: '📜 難読・ことわざ',
+      association: '🔗 連想クイズ',
+      custom_only: '✨ 自作問題'
+    };
+
+    const QUIZ_DATABASE = [
+      // なぞなぞ (12問)
+      { id: 'r1', genre: 'riddle', q: 'いつも前に進んでいるのに、絶対に追い抜けないものはなーんだ？', display: '時計の針', kana: 'とけいのはり', hint: '部屋や腕にある時間を知らせる道具の一部です' },
+      { id: 'r2', genre: 'riddle', q: '切っても切っても、だんだん長くなるものはなーんだ？', display: 'ロープ', kana: 'ろーぷ', hint: '綱や紐の仲間で、英語でもよく使われる言葉です' },
+      { id: 'r3', genre: 'riddle', q: '朝は4本足、昼は2本足、夜は3本足で歩くものはなーんだ？', display: '人間', kana: 'にんげん', hint: 'スフィンクスのなぞなぞとして有名な答えです' },
+      { id: 'r4', genre: 'riddle', q: '「まる」の真ん中にある文字はなーんだ？', display: 'る', kana: 'る', hint: 'ひらがな1文字です' },
+      { id: 'r5', genre: 'riddle', q: 'お風呂に入ると必ず小さくなるけれど、絶対に消えないものは？', display: '石鹸', kana: 'せっけん', hint: '体を洗うときに泡立つ固形のアイテムです' },
+      { id: 'r6', genre: 'riddle', q: '開けると閉まり、閉めると開くものはなーんだ？', display: '傘', kana: 'かさ', hint: '雨の日にさして使うアイテム（ひらがな1文字）' },
+      { id: 'r7', genre: 'riddle', q: '目はあるけれど、まったく見えない野菜はなーんだ？', display: 'じゃがいも', kana: 'じゃがいも', hint: 'カレーやポテトチップスでおなじみの根菜です' },
+      { id: 'r8', genre: 'riddle', q: '世界中で一番「あつい」国はどこ？', display: 'エジプト', kana: 'えじぷと', hint: 'ピラミッドがあるアフリカ北東部の国です' },
+      { id: 'r9', genre: 'riddle', q: '上には上があって、下には下がないものはなーんだ？', display: '階段', kana: 'かいだん', hint: '建物の中で上の階へ行くための段差です' },
+      { id: 'r10', genre: 'riddle', q: '食べられないのに「りんご」という名前がついているものは？', display: 'パソコン', kana: 'ぱそこん', hint: 'リンゴのロゴマークで有名な電子機器です' },
+      { id: 'r11', genre: 'riddle', q: 'いつも濡れているのに、濡らすことができるものはなーんだ？', display: '水', kana: 'みず', hint: '透明で命に欠かせない液体です' },
+      { id: 'r12', genre: 'riddle', q: '逆さから読んでも同じ言葉になる楽器はなーんだ？', display: 'しんぶんし', kana: 'しんぶんし', hint: '毎朝届く新聞紙（回文になっています）' },
+
+      // 法則・穴埋め (11問)
+      { id: 'p1', genre: 'pattern', q: '次の法則に当てはまる言葉は？  月→げつ / 火→か / 水→すい / 木→？', display: 'もく', kana: 'もく', hint: '曜日の漢字の訓読み・音読みの法則です' },
+      { id: 'p2', genre: 'pattern', q: 'アルファベットの並び法則：  A, C, E, G, ？', display: 'i', kana: 'i', hint: '1文字飛ばしで進むアルファベットです' },
+      { id: 'p3', genre: 'pattern', q: '五十音の法則：  あ→う / か→く / さ→す / た→？', display: 'つ', kana: 'つ', hint: 'それぞれの行の「あ段」から「う段」へ移っています' },
+      { id: 'p4', genre: 'pattern', q: '言葉の変換法則：  りんご→ご / すいか→か / ばなな→？', display: 'な', kana: 'な', hint: 'それぞれの単語の「最後の1文字」を取り出しています' },
+      { id: 'p5', genre: 'pattern', q: 'ローマ字の頭文字法則：  春→h / 夏→n / 秋→a / 冬→？', display: 'f', kana: 'f', hint: '四季をローマ字（ふゆ＝fuyu）にした時の最初の文字です' },
+      { id: 'p6', genre: 'pattern', q: '数字の法則：  2, 4, 8, 16, ？', display: '32', kana: '32', hint: '前の数を2倍していく数列です' },
+      { id: 'p7', genre: 'pattern', q: 'しりとり穴埋め：  さくら → らくだ → だんご → ごりら → ？', display: 'らっぱ', kana: 'らっぱ', hint: '「ら」から始まり「ぱ」で終わる楽器の名前です' },
+      { id: 'p8', genre: 'pattern', q: '反対言葉の法則：  右→左 / 上→下 / 東→？', display: 'にし', kana: 'にし', hint: '方角の対義語です' },
+      { id: 'p9', genre: 'pattern', q: '英語変換法則：  犬→dog / 猫→cat / 鳥→？', display: 'bird', kana: 'bird', hint: '空を飛ぶ生き物を表す英単語です' },
+      { id: 'p10', genre: 'pattern', q: '月の満ち欠け・季節法則：  春分→昼夜同じ / 夏至→昼が最長 / 冬至→昼が？', display: 'さいたん', kana: 'さいたん', hint: '1年で最も昼が短く夜が長い日です' },
+      { id: 'p11', genre: 'pattern', q: 'ことわざ穴埋め：  石の上にも ？ 年', display: 'さん', kana: 'さん', hint: '辛抱強く続ければ必ず成功するという意味の数字です' },
+
+      // 難読・ことわざ (11問)
+      { id: 'k1', genre: 'kanji', q: '難読漢字「海豚」の読み方は？', display: 'いるか', kana: 'いるか', hint: '海で泳ぐ賢い哺乳類です' },
+      { id: 'k2', genre: 'kanji', q: '難読漢字「時雨」の読み方は？', display: 'しぐれ', kana: 'しぐれ', hint: '秋から冬にかけて降ったりやんだりする通り雨です' },
+      { id: 'k3', genre: 'kanji', q: '難読漢字「向日葵」の読み方は？', display: 'ひまわり', kana: 'ひまわり', hint: '夏に大きな黄色い花を咲かせる植物です' },
+      { id: 'k4', genre: 'kanji', q: '難読漢字「蛍烏賊」の読み方は？', display: 'ほたるいか', kana: 'ほたるいか', hint: '富山湾などで有名、青白く光る海の生き物です' },
+      { id: 'k5', genre: 'kanji', q: '難読漢字「蒲公英」の読み方は？', display: 'たんぽぽ', kana: 'たんぽぽ', hint: '春に黄色い花を咲かせ、綿毛を飛ばす野草です' },
+      { id: 'k6', genre: 'kanji', q: 'ことわざ「猿も木から ？ 」に入る言葉は？', display: 'おちる', kana: 'おちる', hint: '得意なことでも油断すると失敗するという意味です' },
+      { id: 'k7', genre: 'kanji', q: 'ことわざ「塵も積もれば ？ となる」に入る言葉は？', display: 'やま', kana: 'やま', hint: '小さなものでも集まれば大きくなるというたとえです' },
+      { id: 'k8', genre: 'kanji', q: '難読漢字「秋刀魚」の読み方は？', display: 'さんま', kana: 'さんま', hint: '秋の食卓の定番、細長い銀色の魚です' },
+      { id: 'k9', genre: 'kanji', q: '難読漢字「紫陽花」の読み方は？', display: 'あじさい', kana: 'あじさい', hint: '梅雨の時期に色とりどりの花を咲かせます' },
+      { id: 'k10', genre: 'kanji', q: 'ことわざ「習うより ？ 」に入る言葉は？', display: 'なれろ', kana: 'なれろ', hint: '理屈を学ぶよりも実際に体験して身につける方が早いという意味です' },
+      { id: 'k11', genre: 'kanji', q: '難読漢字「珈琲」の読み方は？', display: 'こーひー', kana: 'こーひー', hint: '焙煎した豆から淹れる香ばしい飲み物です' },
+
+      // 連想クイズ (10問)
+      { id: 'a1', genre: 'association', q: '【連想】「赤信号」「横断歩道」「歩行者用」といえば？', display: 'しんごうき', kana: 'しんごうき', hint: '道路の交差点で交通整理をする装置です' },
+      { id: 'a2', genre: 'association', q: '【連想】「おにぎり」「お弁当」「しゃもじ」といえば？', display: 'ごはん', kana: 'ごはん', hint: '炊いたお米のことです' },
+      { id: 'a3', genre: 'association', q: '【連想】「七夕」「天の川」「短冊」といえば？', display: 'ほし', kana: 'ほし', hint: '夜空でキラキラ輝いています' },
+      { id: 'a4', genre: 'association', q: '【連想】「パスポート」「スーツケース」「空港」といえば？', display: 'りょこう', kana: 'りょこう', hint: '遠くへ出かけて観光や滞在を楽しむことです' },
+      { id: 'a5', genre: 'association', q: '【連想】「鍵盤」「楽譜」「ピアノ」といえば？', display: 'おんがく', kana: 'おんがく', hint: 'メロディやリズムを楽しむ芸術です' },
+      { id: 'a6', genre: 'association', q: '【連想】「読書」「貸出カード」「本棚」といえば？', display: 'としょかん', kana: 'としょかん', hint: 'たくさんの本が並び、借りたり読んだりできる施設です' },
+      { id: 'a7', genre: 'association', q: '【連想】「雪だるま」「スキー」「マフラー」といえば？', display: 'ふゆ', kana: 'ふゆ', hint: '一年で一番寒い季節です' },
+      { id: 'a8', genre: 'association', q: '【連想】「金メダル」「聖火」「選手村」といえば？', display: 'おりんぴっく', kana: 'おりんぴっく', hint: '世界中のアスリートが集うスポーツの祭典です' },
+      { id: 'a9', genre: 'association', q: '【連想】「絵の具」「キャンバス」「筆」といえば？', display: 'え', kana: 'え', hint: '色や形で表現するアート作品（ひらがな1文字）' },
+      { id: 'a10', genre: 'association', q: '【連想】「切手」「ポスト」「年賀状」といえば？', display: 'てがみ', kana: 'てがみ', hint: '紙に書いて相手に送るメッセージです' }
+    ];
+
+    const ENEMY_TEMPLATES = [
+      { name: 'スライム・スパーク', sprite: '👾', baseHp: 110, speedPerSec: 6.5, atkDamage: 14, expReward: 70 },
+      { name: 'ゴースト・タイパー', sprite: '👻', baseHp: 145, speedPerSec: 7.5, atkDamage: 16, expReward: 95 },
+      { name: 'サイバー・メカカニ', sprite: '🦀', baseHp: 180, speedPerSec: 8.2, atkDamage: 18, expReward: 120 },
+      { name: 'ファントム・ウルフ', sprite: '🐺', baseHp: 210, speedPerSec: 9.0, atkDamage: 20, expReward: 150 }
+    ];
+
+    const BOSS_TEMPLATES = [
+      { name: '👑 魔王ブレイン・ドラゴン', sprite: '🐲', baseHp: 280, speedPerSec: 8.0, atkDamage: 24, expReward: 250 },
+      { name: '👑 皇帝クロノス・ゴーレム', sprite: '🗿', baseHp: 340, speedPerSec: 8.8, atkDamage: 28, expReward: 320 }
+    ];
+
+    const SAMPLE_CUSTOM_QUIZZES = [
+      {
+        id: 'sample-1',
+        genre: 'riddle',
+        q: 'パンはパンでも、食べられないパンはなーんだ？',
+        display: 'フライパン',
+        kana: 'ふらいぱん',
+        hint: 'キッチンのコンロで料理するときに使う調理器具です'
+      },
+      {
+        id: 'sample-2',
+        genre: 'association',
+        q: '【連想】「満月」「うさぎ」「お月見」といえば？',
+        display: 'つき',
+        kana: 'つき',
+        hint: '夜空に浮かび、形が少しずつ変わって見えます'
+      }
+    ];
+
+    const STORAGE_KEY_CUSTOM = 'brainspark_custom_quizzes_v1';
+    const STORAGE_KEY_KEY_STATS = 'brainspark_key_stats_v1';
+
+    /**
+     * =========================================================================
+     * 5. アプリケーション状態管理
+     * =========================================================================
+     */
+    const state = {
+      activeView: 'play', // 'play' | 'analysis' | 'editor'
+      gameMode: 'spark',  // 'spark' | 'battle'
+      genre: 'all',       // 'all' | 'weakness' | 'riddle' | 'pattern' | 'kanji' | 'association' | 'custom_only'
+      rule: '10q',        // '10q' | '60s' | 'endless'
+      targetQuestions: 10,
+      status: 'idle',     // 'idle' | 'playing' | 'paused' | 'finished'
+      battleOutcome: null,
+
+      startTime: 0,
+      lastTickTime: 0,
+      pausedAtTime: 0,
+      pausedAccumMs: 0,
+      elapsedSec: 0,
+      timeLeft: 60,
+      timerId: null,
+
+      score: 0,
+      combo: 0,
+      maxCombo: 0,
+      solvedCount: 0,
+      sparkSolvedCount: 0,
+      totalCorrectKeys: 0,
+      questionIndex: 0,
+
+      deck: [],
+      currentQuiz: null,
+      hintStage: 0,
+      freeRomajiBuffer: '',
+      guidedTracker: null,
+      isTransitioning: false,
+
+      keyboardVisible: true,
+      customQuizzes: [],
+      keyStats: {}, // { [key: string]: { hits: number, misses: number } }
+
+      battle: {
+        wave: 1,
+        playerHp: 100,
+        playerMaxHp: 100,
+        enemy: null,
+        enemyHp: 100,
+        enemyMaxHp: 100,
+        enemyCharge: 0,
+        defeatedCount: 0,
+        exp: 0
+      },
+
+      testPlay: {
+        active: false,
+        quiz: null,
+        hintStage: 0,
+        freeRomajiBuffer: '',
+        guidedTracker: null,
+        solved: false
+      },
+
+      pendingConfirmCallback: null
+    };
+
+    const sfx = new SoundEffects();
+
+    /**
+     * =========================================================================
+     * 6. DOM要素参照＆オンスクリーンキーボード構築
+     * =========================================================================
+     */
+    const el = {
+      universalInput: document.getElementById('universalInput'),
+
+      // ナビゲーション・ビュー
+      navPlayBtn: document.getElementById('navPlayBtn'),
+      navAnalysisBtn: document.getElementById('navAnalysisBtn'),
+      navEditorBtn: document.getElementById('navEditorBtn'),
+      navWeakCountBadge: document.getElementById('navWeakCountBadge'),
+      navCustomCountBadge: document.getElementById('navCustomCountBadge'),
+      playView: document.getElementById('playView'),
+      analysisView: document.getElementById('analysisView'),
+      editorView: document.getElementById('editorView'),
+
+      // ヘッダーユーティリティ
+      shortcutsModalBtn: document.getElementById('shortcutsModalBtn'),
+      closeShortcutsBtn: document.getElementById('closeShortcutsBtn'),
+      closeShortcutsBottomBtn: document.getElementById('closeShortcutsBottomBtn'),
+      shortcutsModal: document.getElementById('shortcutsModal'),
+      volumeSlider: document.getElementById('volumeSlider'),
+      volumeValueLabel: document.getElementById('volumeValueLabel'),
+      soundToggleBtn: document.getElementById('soundToggleBtn'),
+      soundOnIcon: document.getElementById('soundOnIcon'),
+      soundOffIcon: document.getElementById('soundOffIcon'),
+      themeToggleBtn: document.getElementById('themeToggleBtn'),
+      sunIcon: document.getElementById('sunIcon'),
+      moonIcon: document.getElementById('moonIcon'),
+
+      // プレイ設定・コントロール
+      gameModeBtns: document.querySelectorAll('.gamemode-btn'),
+      genreSelect: document.getElementById('genreSelect'),
+      ruleBtns: document.querySelectorAll('.rule-btn'),
+      pauseToggleBtn: document.getElementById('pauseToggleBtn'),
+      pauseIcon: document.getElementById('pauseIcon'),
+      pauseLabel: document.getElementById('pauseLabel'),
+      pauseOverlay: document.getElementById('pauseOverlay'),
+      resumeGameBtn: document.getElementById('resumeGameBtn'),
+      pauseRestartBtn: document.getElementById('pauseRestartBtn'),
+      shuffleDeckBtn: document.getElementById('shuffleDeckBtn'),
+      kbVisibilityBtn: document.getElementById('kbVisibilityBtn'),
+      virtualKeyboardPanel: document.getElementById('virtualKeyboardPanel'),
+      resetBtn: document.getElementById('resetBtn'),
+
+      // 統計＆プログレス
+      progressLabel: document.getElementById('progressLabel'),
+      statProgress: document.getElementById('statProgress'),
+      timerLabel: document.getElementById('timerLabel'),
+      statTimer: document.getElementById('statTimer'),
+      statCombo: document.getElementById('statCombo'),
+      statScore: document.getElementById('statScore'),
+      topProgressBar: document.getElementById('topProgressBar'),
+
+      // バトルHUD
+      battleHudPanel: document.getElementById('battleHudPanel'),
+      battleWaveBadge: document.getElementById('battleWaveBadge'),
+      playerHpText: document.getElementById('playerHpText'),
+      playerHpBar: document.getElementById('playerHpBar'),
+      battleDefeatedCount: document.getElementById('battleDefeatedCount'),
+      battleExpCount: document.getElementById('battleExpCount'),
+      damagePopupLayer: document.getElementById('damagePopupLayer'),
+      enemySpriteBox: document.getElementById('enemySpriteBox'),
+      enemyNameLabel: document.getElementById('enemyNameLabel'),
+      enemyHpText: document.getElementById('enemyHpText'),
+      enemyHpBar: document.getElementById('enemyHpBar'),
+      enemyChargeText: document.getElementById('enemyChargeText'),
+      enemyChargeBar: document.getElementById('enemyChargeBar'),
+
+      // 出題カード
+      typingCard: document.getElementById('typingCard'),
+      startOverlay: document.getElementById('startOverlay'),
+      startHeroIcon: document.getElementById('startHeroIcon'),
+      startOverlayTitle: document.getElementById('startOverlayTitle'),
+      startOverlayDesc: document.getElementById('startOverlayDesc'),
+      startTriggerBtn: document.getElementById('startTriggerBtn'),
+      startBtnLabel: document.getElementById('startBtnLabel'),
+      emptyCustomCreateBtn: document.getElementById('emptyCustomCreateBtn'),
+      sparkEffectOverlay: document.getElementById('sparkEffectOverlay'),
+      sparkBannerTitle: document.getElementById('sparkBannerTitle'),
+      bonusToastText: document.getElementById('bonusToastText'),
+      questionGenreBadge: document.getElementById('questionGenreBadge'),
+      weaknessTagBadge: document.getElementById('weaknessTagBadge'),
+      sparkBonusBadge: document.getElementById('sparkBonusBadge'),
+      hintBtn: document.getElementById('hintBtn'),
+      questionText: document.getElementById('questionText'),
+      hintContentText: document.getElementById('hintContentText'),
+      kanaSlotsDisplay: document.getElementById('kanaSlotsDisplay'),
+      romajiLineDisplay: document.getElementById('romajiLineDisplay'),
+      keyboardRows: document.getElementById('keyboardRows'),
+      nextKeyIndicator: document.getElementById('nextKeyIndicator'),
+
+      // 苦手分析画面
+      startWeaknessDrillBtn: document.getElementById('startWeaknessDrillBtn'),
+      resetKeyStatsBtn: document.getElementById('resetKeyStatsBtn'),
+      statsTotalHits: document.getElementById('statsTotalHits'),
+      statsTotalMisses: document.getElementById('statsTotalMisses'),
+      statsOverallAccuracy: document.getElementById('statsOverallAccuracy'),
+      topWeakKeysList: document.getElementById('topWeakKeysList'),
+      heatmapKeyboardGrid: document.getElementById('heatmapKeyboardGrid'),
+
+      // リザルトモーダル
+      resultModal: document.getElementById('resultModal'),
+      resultBadgeLabel: document.getElementById('resultBadgeLabel'),
+      resultHeadingTitle: document.getElementById('resultHeadingTitle'),
+      resultRank: document.getElementById('resultRank'),
+      resultScore: document.getElementById('resultScore'),
+      resultKpm: document.getElementById('resultKpm'),
+      resultPrimaryMetricLabel: document.getElementById('resultPrimaryMetricLabel'),
+      resultSolved: document.getElementById('resultSolved'),
+      resultSecondaryMetricLabel: document.getElementById('resultSecondaryMetricLabel'),
+      resultSparkCount: document.getElementById('resultSparkCount'),
+      resultMaxCombo: document.getElementById('resultMaxCombo'),
+      retryGameBtn: document.getElementById('retryGameBtn'),
+      resultCreateBtn: document.getElementById('resultCreateBtn'),
+
+      // 問題作成エディタ
+      editorFormHeading: document.getElementById('editorFormHeading'),
+      addSampleCustomBtn: document.getElementById('addSampleCustomBtn'),
+      customQuizForm: document.getElementById('customQuizForm'),
+      editingQuizId: document.getElementById('editingQuizId'),
+      formGenre: document.getElementById('formGenre'),
+      formQuestion: document.getElementById('formQuestion'),
+      formDisplay: document.getElementById('formDisplay'),
+      formKana: document.getElementById('formKana'),
+      kanaNormalizeHint: document.getElementById('kanaNormalizeHint'),
+      formHint: document.getElementById('formHint'),
+      editorErrorBox: document.getElementById('editorErrorBox'),
+      saveCustomQuizBtn: document.getElementById('saveCustomQuizBtn'),
+      saveQuizBtnLabel: document.getElementById('saveQuizBtnLabel'),
+      testPlayCurrentBtn: document.getElementById('testPlayCurrentBtn'),
+      clearFormBtn: document.getElementById('clearFormBtn'),
+      previewKanaLengthBadge: document.getElementById('previewKanaLengthBadge'),
+      previewGenreBadge: document.getElementById('previewGenreBadge'),
+      previewCircles: document.getElementById('previewCircles'),
+      previewQuestionText: document.getElementById('previewQuestionText'),
+      previewHintText: document.getElementById('previewHintText'),
+      previewAnswerText: document.getElementById('previewAnswerText'),
+      previewRomajiSample: document.getElementById('previewRomajiSample'),
+      customListCountLabel: document.getElementById('customListCountLabel'),
+      exportJsonBtn: document.getElementById('exportJsonBtn'),
+      importJsonInput: document.getElementById('importJsonInput'),
+      customQuestionsList: document.getElementById('customQuestionsList'),
+
+      // 試し打ちモーダル
+      testPlayModal: document.getElementById('testPlayModal'),
+      testPlayCard: document.getElementById('testPlayCard'),
+      closeTestPlayBtn: document.getElementById('closeTestPlayBtn'),
+      testPlayQuestion: document.getElementById('testPlayQuestion'),
+      testPlayHintText: document.getElementById('testPlayHintText'),
+      testPlaySlots: document.getElementById('testPlaySlots'),
+      testPlayRomaji: document.getElementById('testPlayRomaji'),
+      testPlaySuccessBanner: document.getElementById('testPlaySuccessBanner'),
+      testPlayHintBtn: document.getElementById('testPlayHintBtn'),
+      testPlayRetryBtn: document.getElementById('testPlayRetryBtn'),
+
+      // 確認モーダル＆トースト
+      confirmDialogModal: document.getElementById('confirmDialogModal'),
+      confirmDialogTitle: document.getElementById('confirmDialogTitle'),
+      confirmDialogMessage: document.getElementById('confirmDialogMessage'),
+      confirmCancelBtn: document.getElementById('confirmCancelBtn'),
+      confirmOkBtn: document.getElementById('confirmOkBtn'),
+      toastBanner: document.getElementById('toastBanner')
+    };
+
+    const JIS_ROWS = [
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-'],
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm']
+    ];
+    const HOME_KEYS = new Set(['f', 'j']);
+    const keyDomMap = new Map();
+
+    function showToast(msg) {
+      el.toastBanner.textContent = msg;
+      el.toastBanner.classList.remove('opacity-0', 'translate-y-2');
+      el.toastBanner.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => {
+        el.toastBanner.classList.remove('opacity-100', 'translate-y-0');
+        el.toastBanner.classList.add('opacity-0', 'translate-y-2');
+      }, 2200);
+    }
+
+    function openConfirmDialog(title, message, onConfirm) {
+      el.confirmDialogTitle.textContent = title;
+      el.confirmDialogMessage.textContent = message;
+      state.pendingConfirmCallback = onConfirm;
+      el.confirmDialogModal.classList.remove('hidden');
+      el.confirmDialogModal.classList.add('flex');
+    }
+
+    function closeConfirmDialog() {
+      state.pendingConfirmCallback = null;
+      el.confirmDialogModal.classList.add('hidden');
+      el.confirmDialogModal.classList.remove('flex');
+    }
+
+    function buildVirtualKeyboard() {
+      el.keyboardRows.innerHTML = '';
+      keyDomMap.clear();
+
+      JIS_ROWS.forEach((rowKeys, rowIdx) => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'flex justify-center gap-1 sm:gap-1.5';
+        if (rowIdx === 1) rowEl.classList.add('pl-3', 'sm:pl-6');
+        if (rowIdx === 2) rowEl.classList.add('pl-5', 'sm:pl-10');
+        if (rowIdx === 3) rowEl.classList.add('pl-8', 'sm:pl-14');
+
+        rowKeys.forEach(k => {
+          const btn = document.createElement('div');
+          const isHome = HOME_KEYS.has(k);
+          btn.className = `relative flex-1 max-w-[3.4rem] h-9 sm:h-11 rounded-xl border text-xs sm:text-sm font-mono font-bold flex flex-col items-center justify-center transition-all duration-75 ${
+            isHome
+              ? 'bg-amber-50/80 dark:bg-slate-800 border-amber-300 dark:border-amber-600/60 text-slate-900 dark:text-amber-200'
+              : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300'
+          }`;
+          btn.textContent = k.toUpperCase();
+
+          if (isHome) {
+            const bump = document.createElement('span');
+            bump.className = 'w-2.5 h-0.5 rounded-full bg-amber-500 mt-0.5';
+            btn.appendChild(bump);
+          }
+
+          keyDomMap.set(k, btn);
+          rowEl.appendChild(btn);
+        });
+
+        el.keyboardRows.appendChild(rowEl);
+      });
+    }
+
+    function flashKeyPress(rawChar) {
+      const norm = normalizeKeyInput(rawChar);
+      if (!norm) return;
+      const target = keyDomMap.get(norm[0]);
+      if (!target) return;
+      target.classList.add('key-active');
+      setTimeout(() => {
+        target.classList.remove('key-active');
+      }, 110);
+    }
+
+    function updateNextKeyHighlight(nextChar) {
+      keyDomMap.forEach(keyEl => {
+        keyEl.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-600', 'dark:bg-indigo-500', 'text-white', 'dark:text-white');
+      });
+
+      if (!nextChar || state.status !== 'playing') {
+        el.nextKeyIndicator.textContent = state.status === 'playing' ? '💡 ひらめき自由入力中' : 'READY';
+        return;
+      }
+
+      const k = nextChar.toLowerCase();
+      el.nextKeyIndicator.textContent = `NEXT KEY: [ ${k.toUpperCase()} ]`;
+      const target = keyDomMap.get(k);
+      if (target) {
+        target.classList.add('ring-2', 'ring-indigo-500', 'bg-indigo-600', 'dark:bg-indigo-500', 'text-white', 'dark:text-white');
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 6.5 苦手キー記録・分析・弱点克服出題ロジック
+     * =========================================================================
+     */
+    function loadKeyStatsFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_KEY_STATS);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') state.keyStats = parsed;
+        }
+      } catch (e) {
+        state.keyStats = {};
+      }
+      updateWeakKeyBadges();
+    }
+
+    function saveKeyStatsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_KEY_STATS, JSON.stringify(state.keyStats));
+      } catch (e) {}
+      updateWeakKeyBadges();
+    }
+
+    function recordKeyHit(char) {
+      const k = String(char || '').toLowerCase();
+      if (!/^[a-z0-9\-]$/.test(k)) return;
+      if (!state.keyStats[k]) state.keyStats[k] = { hits: 0, misses: 0 };
+      state.keyStats[k].hits++;
+      saveKeyStatsToStorage();
+    }
+
+    function recordKeyMiss(char) {
+      const k = String(char || '').toLowerCase();
+      if (!/^[a-z0-9\-]$/.test(k)) return;
+      if (!state.keyStats[k]) state.keyStats[k] = { hits: 0, misses: 0 };
+      state.keyStats[k].misses++;
+      saveKeyStatsToStorage();
+    }
+
+    function getRankedWeakKeys() {
+      const entries = [];
+      for (const [key, stat] of Object.entries(state.keyStats)) {
+        const hits = stat.hits || 0;
+        const misses = stat.misses || 0;
+        const total = hits + misses;
+        if (misses > 0 && total > 0) {
+          const missRate = misses / total;
+          const weaknessScore = misses * 2 + missRate * 10;
+          entries.push({ key, hits, misses, total, missRate, weaknessScore });
+        }
+      }
+      entries.sort((a, b) => b.weaknessScore - a.weaknessScore);
+      return entries;
+    }
+
+    function updateWeakKeyBadges() {
+      const weakKeys = getRankedWeakKeys();
+      el.navWeakCountBadge.textContent = weakKeys.length;
+      if (weakKeys.length > 0) {
+        el.navWeakCountBadge.classList.remove('hidden');
+      } else {
+        el.navWeakCountBadge.classList.add('hidden');
+      }
+    }
+
+    function renderAnalysisDashboard() {
+      const weakKeys = getRankedWeakKeys();
+      let totalHits = 0;
+      let totalMisses = 0;
+
+      Object.values(state.keyStats).forEach(s => {
+        totalHits += (s.hits || 0);
+        totalMisses += (s.misses || 0);
+      });
+      const totalAttempts = totalHits + totalMisses;
+      const accuracy = totalAttempts > 0 ? Math.round((totalHits / totalAttempts) * 100) : 100;
+
+      el.statsTotalHits.textContent = totalHits.toLocaleString();
+      el.statsTotalMisses.textContent = totalMisses.toLocaleString();
+      el.statsOverallAccuracy.textContent = `${accuracy}%`;
+
+      el.topWeakKeysList.innerHTML = '';
+      if (weakKeys.length === 0) {
+        el.topWeakKeysList.innerHTML = `
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-400">
+            まだミス記録がありません！プレイ中にミスタイプが発生すると、ここに苦手キーが表示されます。
+          </div>
+        `;
+      } else {
+        weakKeys.slice(0, 5).forEach((item, idx) => {
+          const pct = Math.round(item.missRate * 100);
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800';
+          row.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              <span class="text-xs font-mono font-extrabold text-slate-400">#${idx + 1}</span>
+              <span class="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-400 font-mono font-black uppercase flex items-center justify-center text-sm">${item.key}</span>
+              <span class="text-xs font-bold text-slate-700 dark:text-slate-200">ミス ${item.misses}回 / 打鍵 ${item.total}回</span>
+            </div>
+            <span class="text-xs font-mono font-extrabold text-rose-400">ミス率 ${pct}%</span>
+          `;
+          el.topWeakKeysList.appendChild(row);
+        });
+      }
+
+      el.heatmapKeyboardGrid.innerHTML = '';
+      JIS_ROWS.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'flex justify-center gap-1.5 w-full';
+        row.forEach(k => {
+          const stat = state.keyStats[k] || { hits: 0, misses: 0 };
+          const total = stat.hits + stat.misses;
+          const rate = total > 0 ? stat.misses / total : 0;
+
+          let colorClass = 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-300';
+          if (stat.misses >= 3 || rate >= 0.25) {
+            colorClass = 'bg-rose-500/35 border-rose-500 text-rose-200 shadow-sm shadow-rose-500/20';
+          } else if (stat.misses > 0) {
+            colorClass = 'bg-amber-500/25 border-amber-500/70 text-amber-200';
+          } else if (stat.hits > 0) {
+            colorClass = 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300';
+          }
+
+          const cell = document.createElement('div');
+          cell.className = `flex-1 max-w-[3.2rem] h-10 rounded-xl border flex flex-col items-center justify-center font-mono ${colorClass}`;
+          cell.innerHTML = `
+            <span class="text-xs font-extrabold uppercase leading-none">${k}</span>
+            <span class="text-[9px] opacity-80 mt-0.5">${stat.misses > 0 ? `×${stat.misses}` : stat.hits > 0 ? `✓${stat.hits}` : '-'}</span>
+          `;
+          rowDiv.appendChild(cell);
+        });
+        el.heatmapKeyboardGrid.appendChild(rowDiv);
+      });
+    }
+
+    /**
+     * =========================================================================
+     * 7. ゲーム進行・バトルシステム・段階的ヒント・解答判定ロジック
+     * =========================================================================
+     */
+    function shuffle(list) {
+      const arr = [...list];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function scoreQuizForWeakness(quiz) {
+      const weakKeys = getRankedWeakKeys().slice(0, 6).map(w => w.key);
+      if (weakKeys.length === 0) return Math.random();
+      const tracker = new GuidedRomajiTracker(quiz.kana);
+      const sampleRomaji = tracker.getDisplayParts().remaining.toLowerCase();
+      let matchCount = 0;
+      for (const wk of weakKeys) {
+        if (sampleRomaji.includes(wk)) matchCount++;
+      }
+      return matchCount * 10 + Math.random();
+    }
+
+    function buildQuizDeck() {
+      const allPool = [...QUIZ_DATABASE, ...state.customQuizzes];
+      let pool = [];
+
+      if (state.genre === 'all') {
+        pool = shuffle(allPool);
+      } else if (state.genre === 'weakness') {
+        pool = [...allPool].sort((a, b) => scoreQuizForWeakness(b) - scoreQuizForWeakness(a));
+      } else if (state.genre === 'custom_only') {
+        pool = shuffle([...state.customQuizzes]);
+      } else {
+        const matching = allPool.filter(item => item.genre === state.genre);
+        pool = shuffle(matching);
+      }
+      state.deck = pool;
+    }
+
+    function spawnEnemyForWave(waveNum) {
+      const isBossWave = waveNum % 3 === 0;
+      const pool = isBossWave ? BOSS_TEMPLATES : ENEMY_TEMPLATES;
+      const tpl = pool[(waveNum - 1) % pool.length];
+      const scaleFactor = 1 + (waveNum - 1) * 0.22;
+      const hp = Math.round(tpl.baseHp * scaleFactor);
+
+      state.battle.wave = waveNum;
+      state.battle.enemy = { ...tpl, isBoss: isBossWave };
+      state.battle.enemyMaxHp = hp;
+      state.battle.enemyHp = hp;
+      state.battle.enemyCharge = 0;
+
+      renderBattleHud();
+    }
+
+    function renderBattleHud() {
+      if (state.gameMode !== 'battle') {
+        el.battleHudPanel.classList.add('hidden');
+        el.typingCard.classList.remove('neon-card-battle');
+        return;
+      }
+
+      el.battleHudPanel.classList.remove('hidden');
+      el.typingCard.classList.add('neon-card-battle');
+
+      const b = state.battle;
+      el.battleWaveBadge.textContent = b.enemy && b.enemy.isBoss ? `BOSS WAVE ${b.wave}` : `WAVE ${b.wave}`;
+      el.playerHpText.textContent = `${Math.max(0, b.playerHp)} / ${b.playerMaxHp}`;
+      const hpPct = Math.max(0, Math.min(100, (b.playerHp / b.playerMaxHp) * 100));
+      el.playerHpBar.style.width = `${hpPct}%`;
+
+      el.battleDefeatedCount.textContent = b.defeatedCount;
+      el.battleExpCount.textContent = b.exp;
+
+      if (b.enemy) {
+        el.enemySpriteBox.textContent = b.enemy.sprite;
+        el.enemyNameLabel.textContent = b.enemy.name;
+        el.enemyHpText.textContent = `HP ${Math.max(0, b.enemyHp)}/${b.enemyMaxHp}`;
+        const ePct = Math.max(0, Math.min(100, (b.enemyHp / b.enemyMaxHp) * 100));
+        el.enemyHpBar.style.width = `${ePct}%`;
+
+        el.enemyChargeText.textContent = `${Math.floor(b.enemyCharge)}%`;
+        el.enemyChargeBar.style.width = `${Math.min(100, b.enemyCharge)}%`;
+      }
+    }
+
+    function showDamagePopup(amount, isCritical = false) {
+      if (!el.damagePopupLayer) return;
+      const pop = document.createElement('div');
+      pop.className = isCritical
+        ? 'animate-damage-pop font-mono font-black text-lg sm:text-xl text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]'
+        : 'animate-damage-pop font-mono font-extrabold text-sm sm:text-base text-rose-400';
+      pop.textContent = isCritical ? `💥 -${amount} CRIT!` : `-${amount}`;
+      el.damagePopupLayer.appendChild(pop);
+      setTimeout(() => pop.remove(), 660);
+    }
+
+    function dealDamageToEnemy(rawDamage, isCritical = false) {
+      if (state.gameMode !== 'battle' || state.status !== 'playing') return false;
+      const b = state.battle;
+      const dmg = Math.max(8, Math.round(rawDamage));
+      b.enemyHp -= dmg;
+      b.enemyCharge = Math.max(0, b.enemyCharge - (isCritical ? 25 : 6));
+      sfx.playAttackHit(isCritical);
+      showDamagePopup(dmg, isCritical);
+
+      el.enemySpriteBox.classList.remove('animate-enemy-hurt');
+      void el.enemySpriteBox.offsetWidth;
+      el.enemySpriteBox.classList.add('animate-enemy-hurt');
+
+      if (b.enemyHp <= 0) {
+        b.enemyHp = 0;
+        b.defeatedCount++;
+        b.exp += (b.enemy ? b.enemy.expReward : 80);
+        state.score += (b.enemy && b.enemy.isBoss ? 1200 : 400);
+        sfx.playEnemyDefeated();
+        renderBattleHud();
+        spawnEnemyForWave(b.wave + 1);
+        return true;
+      }
+
+      renderBattleHud();
+      return false;
+    }
+
+    function handleEnemyAttackPlayer() {
+      if (state.gameMode !== 'battle' || state.status !== 'playing') return;
+      const b = state.battle;
+      const dmg = b.enemy ? b.enemy.atkDamage : 15;
+      b.playerHp = Math.max(0, b.playerHp - dmg);
+      b.enemyCharge = 0;
+      state.combo = 0;
+      triggerMissShake();
+      renderBattleHud();
+      updateStatsHUD();
+
+      if (b.playerHp <= 0) {
+        finishGame('defeat');
+      }
+    }
+
+    function updateStartOverlayAvailability() {
+      const isCustomEmpty = (state.genre === 'custom_only' && state.customQuizzes.length === 0);
+      if (isCustomEmpty) {
+        el.startOverlayTitle.textContent = '自作問題がまだ登録されていません';
+        el.startOverlayDesc.innerHTML = '「問題作成」タブからオリジナル問題を作成するか、<br>サンプル問題を追加してすぐにプレイできます！';
+        el.startTriggerBtn.classList.add('hidden');
+        el.emptyCustomCreateBtn.classList.remove('hidden');
+        el.emptyCustomCreateBtn.classList.add('flex');
+      } else if (state.gameMode === 'battle') {
+        el.startHeroIcon.textContent = '⚔️';
+        el.startOverlayTitle.textContent = '謎をひらめいてモンスターを撃破せよ！';
+        el.startOverlayDesc.innerHTML = '打鍵で連撃ダメージ、ひらめき正解で大クリティカル！<br>敵の攻撃ゲージが満タンになる前に倒そう（<kbd class="px-1.5 py-0.5 rounded bg-slate-800 font-mono text-xs">P</kbd> で一時停止）。';
+        el.startBtnLabel.textContent = 'バトルスタート';
+        el.startTriggerBtn.classList.remove('hidden');
+        el.emptyCustomCreateBtn.classList.add('hidden');
+        el.emptyCustomCreateBtn.classList.remove('flex');
+      } else {
+        el.startHeroIcon.textContent = '💡';
+        el.startOverlayTitle.textContent = '謎の答えをひらめいて、そのままローマ字タイプ！';
+        el.startOverlayDesc.innerHTML = '答えがわからない時は <kbd class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono text-xs border border-slate-300 dark:border-slate-700">Tab</kbd> キーで段階的にヒントが開きます。<br>ノーヒントで早くひらめくほど<span class="text-amber-500 font-bold">「ひらめきボーナス」</span>を獲得！';
+        el.startBtnLabel.textContent = 'ゲームスタート';
+        el.startTriggerBtn.classList.remove('hidden');
+        el.emptyCustomCreateBtn.classList.add('hidden');
+        el.emptyCustomCreateBtn.classList.remove('flex');
+      }
+    }
+
+    function getSparkBonusPoints() {
+      if (state.hintStage === 0) return 500;
+      if (state.hintStage === 1) return 250;
+      return 100;
+    }
+
+    function loadNextQuestion() {
+      if (state.deck.length === 0) {
+        buildQuizDeck();
+      }
+      if (state.deck.length === 0) {
+        state.currentQuiz = null;
+        return;
+      }
+      state.currentQuiz = state.deck.shift();
+      state.freeRomajiBuffer = '';
+      state.isTransitioning = false;
+      state.hintStage = 0;
+      state.guidedTracker = new GuidedRomajiTracker(state.currentQuiz.kana);
+      renderCurrentQuestion();
+    }
+
+    function advanceHintStage() {
+      if (state.status !== 'playing' || state.isTransitioning) return;
+      if (state.hintStage >= 2) return;
+
+      state.hintStage++;
+      sfx.playHint();
+
+      if (state.hintStage === 2) {
+        state.guidedTracker = new GuidedRomajiTracker(state.currentQuiz.kana);
+        for (const ch of state.freeRomajiBuffer) {
+          if (!state.guidedTracker.inputChar(ch)) break;
+        }
+      }
+
+      renderCurrentQuestion();
+    }
+
+    function renderCurrentQuestion() {
+      const quiz = state.currentQuiz;
+      if (!quiz) return;
+
+      el.questionGenreBadge.textContent = GENRE_LABELS[quiz.genre] || '💡 クイズ';
+      el.questionText.textContent = quiz.q;
+
+      if (state.genre === 'weakness') {
+        el.weaknessTagBadge.classList.remove('hidden');
+      } else {
+        el.weaknessTagBadge.classList.add('hidden');
+      }
+
+      const bonus = getSparkBonusPoints();
+      if (state.hintStage === 0) {
+        el.sparkBonusBadge.textContent = `✨ ひらめきLv.MAX (+${bonus}pt)`;
+        el.sparkBonusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60';
+        el.hintBtn.disabled = false;
+        el.hintBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      } else if (state.hintStage === 1) {
+        el.sparkBonusBadge.textContent = `💡 ヒント1使用 (+${bonus}pt)`;
+        el.sparkBonusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-sky-50 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800/60';
+        el.hintBtn.disabled = false;
+        el.hintBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      } else {
+        el.sparkBonusBadge.textContent = `⌨️ 答え表示中 (+${bonus}pt)`;
+        el.sparkBonusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700';
+        el.hintBtn.disabled = true;
+        el.hintBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      }
+
+      const kanaLen = quiz.kana.length;
+      const circles = '〇'.repeat(kanaLen);
+      if (state.hintStage === 0) {
+        el.hintContentText.textContent = `読みの文字数: ${kanaLen}文字（${circles}）`;
+      } else if (state.hintStage === 1) {
+        el.hintContentText.textContent = `【連想ヒント】${quiz.hint}（${kanaLen}文字）`;
+      } else {
+        el.hintContentText.textContent = `【答え】${quiz.display}（${quiz.kana}）`;
+      }
+
+      renderTypingProgress();
+    }
+
+    function renderTypingProgress() {
+      const quiz = state.currentQuiz;
+      if (!quiz) return;
+
+      el.kanaSlotsDisplay.innerHTML = '';
+
+      if (state.hintStage < 2) {
+        const convertedKana = convertRomajiBufferToKana(state.freeRomajiBuffer);
+        const targetKana = quiz.kana;
+        const maxSlots = Math.max(targetKana.length, convertedKana.length);
+
+        for (let i = 0; i < maxSlots; i++) {
+          const slot = document.createElement('div');
+          const typedChar = convertedKana[i];
+          const expectedChar = targetKana[i];
+
+          if (typedChar !== undefined) {
+            const isMatch = typedChar === expectedChar;
+            slot.className = isMatch
+              ? 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-emerald-500/15 border-2 border-emerald-500 text-emerald-400 font-extrabold text-lg sm:text-xl flex items-center justify-center shadow-sm transition-all'
+              : 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-amber-500/15 border-2 border-amber-500 text-amber-400 font-extrabold text-lg sm:text-xl flex items-center justify-center shadow-sm transition-all';
+            slot.textContent = typedChar;
+          } else {
+            slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-slate-100 dark:bg-slate-800/90 border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-bold text-lg flex items-center justify-center';
+            slot.textContent = '？';
+          }
+          el.kanaSlotsDisplay.appendChild(slot);
+        }
+
+        el.romajiLineDisplay.innerHTML = '';
+        if (state.freeRomajiBuffer.length === 0) {
+          const placeholder = document.createElement('span');
+          placeholder.className = 'text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-sans';
+          placeholder.textContent = 'ひらめいた答えをローマ字でタイプ！（間違えたら Backspace で修正）';
+          el.romajiLineDisplay.appendChild(placeholder);
+        } else {
+          const bufSpan = document.createElement('span');
+          bufSpan.className = 'text-amber-400 font-bold tracking-widest';
+          bufSpan.textContent = state.freeRomajiBuffer;
+          el.romajiLineDisplay.appendChild(bufSpan);
+
+          const cursor = document.createElement('span');
+          cursor.className = 'inline-block w-0.5 h-5 bg-amber-400 ml-0.5 animate-pulse';
+          el.romajiLineDisplay.appendChild(cursor);
+        }
+
+        updateNextKeyHighlight(null);
+      } else {
+        const { typed, remaining, nextChar, completedKanaCount } = state.guidedTracker.getDisplayParts();
+        const targetKana = quiz.kana;
+
+        for (let i = 0; i < targetKana.length; i++) {
+          const slot = document.createElement('div');
+          const isDone = i < completedKanaCount;
+          const isCurrent = i === completedKanaCount;
+
+          if (isDone) {
+            slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-emerald-500/15 border-2 border-emerald-500 text-emerald-400 font-extrabold text-lg sm:text-xl flex items-center justify-center';
+          } else if (isCurrent) {
+            slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-indigo-500/15 border-2 border-indigo-500 text-indigo-400 font-extrabold text-lg sm:text-xl flex items-center justify-center scale-105 shadow-sm';
+          } else {
+            slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold text-lg sm:text-xl flex items-center justify-center';
+          }
+          slot.textContent = targetKana[i];
+          el.kanaSlotsDisplay.appendChild(slot);
+        }
+
+        el.romajiLineDisplay.innerHTML = '';
+        if (typed) {
+          const tSpan = document.createElement('span');
+          tSpan.className = 'text-emerald-400 font-bold';
+          tSpan.textContent = typed;
+          el.romajiLineDisplay.appendChild(tSpan);
+        }
+        if (remaining) {
+          const nextSpan = document.createElement('span');
+          nextSpan.className = 'text-indigo-400 bg-indigo-500/15 px-1 rounded border-b-2 border-indigo-500 font-extrabold mx-0.5';
+          nextSpan.textContent = remaining[0];
+          el.romajiLineDisplay.appendChild(nextSpan);
+
+          if (remaining.length > 1) {
+            const restSpan = document.createElement('span');
+            restSpan.className = 'text-slate-400 dark:text-slate-500';
+            restSpan.textContent = remaining.slice(1);
+            el.romajiLineDisplay.appendChild(restSpan);
+          }
+        }
+
+        updateNextKeyHighlight(nextChar);
+      }
+    }
+
+    function triggerMissShake() {
+      sfx.playMiss();
+      el.typingCard.classList.remove('animate-shake', 'border-rose-500', 'dark:border-rose-500');
+      void el.typingCard.offsetWidth;
+      el.typingCard.classList.add('animate-shake', 'border-rose-500', 'dark:border-rose-500');
+      setTimeout(() => {
+        el.typingCard.classList.remove('border-rose-500', 'dark:border-rose-500');
+      }, 260);
+    }
+
+    function handleQuestionSolved() {
+      if (state.isTransitioning) return;
+      state.isTransitioning = true;
+
+      const isSparkBonus = state.hintStage < 2;
+      const bonusPts = getSparkBonusPoints();
+      state.combo++;
+      if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+
+      const comboBonus = state.combo * 20;
+      const gained = bonusPts + comboBonus;
+      state.score += gained;
+      state.solvedCount++;
+      if (isSparkBonus) state.sparkSolvedCount++;
+
+      if (state.gameMode === 'battle') {
+        const critDmg = isSparkBonus ? (65 + state.combo * 8) : (35 + state.combo * 4);
+        dealDamageToEnemy(critDmg, isSparkBonus);
+      }
+
+      sfx.playSparkCorrect(isSparkBonus);
+
+      el.sparkBannerTitle.textContent = state.gameMode === 'battle'
+        ? (isSparkBonus ? '⚡ ひらめきクリティカル攻撃！' : '⚔️ 解答完了アタック！')
+        : '💡 ピコーン！ひらめき正解！';
+      el.bonusToastText.textContent = `+${gained}pt`;
+      el.sparkEffectOverlay.classList.remove('animate-spark');
+      void el.sparkEffectOverlay.offsetWidth;
+      el.sparkEffectOverlay.classList.add('animate-spark');
+
+      updateStatsHUD();
+
+      setTimeout(() => {
+        if (state.status !== 'playing') return;
+
+        if (state.rule === '10q' && state.solvedCount >= state.targetQuestions) {
+          finishGame('victory');
+        } else {
+          state.questionIndex++;
+          loadNextQuestion();
+          updateStatsHUD();
+        }
+      }, 360);
+    }
+
+    function processCharacterInput(rawChar) {
+      if (state.status !== 'playing' || state.isTransitioning || !state.currentQuiz) return;
+
+      const normalized = normalizeKeyInput(rawChar);
+      if (!normalized) return;
+
+      for (const ch of normalized) {
+        if (state.hintStage < 2) {
+          sfx.playKey();
+          state.freeRomajiBuffer += ch;
+          state.totalCorrectKeys++;
+          recordKeyHit(ch);
+
+          if (state.gameMode === 'battle') {
+            dealDamageToEnemy(12 + Math.min(20, state.combo * 2), false);
+          }
+
+          const currentKana = convertRomajiBufferToKana(state.freeRomajiBuffer);
+          renderTypingProgress();
+
+          if (currentKana === state.currentQuiz.kana) {
+            handleQuestionSolved();
+            return;
+          }
+
+          if (currentKana.length > state.currentQuiz.kana.length + 1) {
+            triggerMissShake();
+          }
+        } else {
+          const expectedNext = state.guidedTracker.getDisplayParts().nextChar;
+          const ok = state.guidedTracker.inputChar(ch);
+          if (ok) {
+            sfx.playKey();
+            state.totalCorrectKeys++;
+            recordKeyHit(ch);
+
+            if (state.gameMode === 'battle') {
+              dealDamageToEnemy(10 + Math.min(18, state.combo * 2), false);
+            }
+
+            renderTypingProgress();
+            if (state.guidedTracker.isFinished()) {
+              handleQuestionSolved();
+              return;
+            }
+          } else {
+            state.combo = 0;
+            recordKeyMiss(expectedNext || ch);
+            if (state.gameMode === 'battle') {
+              state.battle.enemyCharge = Math.min(100, state.battle.enemyCharge + 14);
+              if (state.battle.enemyCharge >= 100) {
+                handleEnemyAttackPlayer();
+                return;
+              }
+              renderBattleHud();
+            }
+            triggerMissShake();
+            updateStatsHUD();
+          }
+        }
+      }
+    }
+
+    function handleBackspace() {
+      if (state.status !== 'playing' || state.isTransitioning) return;
+      if (state.hintStage < 2 && state.freeRomajiBuffer.length > 0) {
+        state.freeRomajiBuffer = state.freeRomajiBuffer.slice(0, -1);
+        sfx.playKey();
+        renderTypingProgress();
+      }
+    }
+
+    function updateStatsHUD() {
+      if (state.rule === '10q') {
+        el.progressLabel.textContent = '問題進捗';
+        const currentNum = Math.min(state.solvedCount + 1, state.targetQuestions);
+        el.statProgress.textContent = `${currentNum} / ${state.targetQuestions}`;
+        el.topProgressBar.style.width = `${(state.solvedCount / state.targetQuestions) * 100}%`;
+
+        el.timerLabel.textContent = '経過時間';
+        el.statTimer.textContent = `${state.elapsedSec.toFixed(1)}s`;
+        el.statTimer.className = 'text-base sm:text-lg font-mono font-extrabold text-slate-800 dark:text-white';
+      } else if (state.rule === '60s') {
+        el.progressLabel.textContent = '正解数';
+        el.statProgress.textContent = `${state.solvedCount} 問`;
+        el.topProgressBar.style.width = `${(state.timeLeft / 60) * 100}%`;
+
+        el.timerLabel.textContent = '残り時間';
+        el.statTimer.textContent = `${Math.ceil(state.timeLeft)}s`;
+        if (state.timeLeft <= 10 && state.status === 'playing') {
+          el.statTimer.className = 'text-base sm:text-lg font-mono font-extrabold text-rose-500 animate-pulse';
+        } else {
+          el.statTimer.className = 'text-base sm:text-lg font-mono font-extrabold text-indigo-400';
+        }
+      } else {
+        el.progressLabel.textContent = '連続正解';
+        el.statProgress.textContent = `${state.solvedCount} 問`;
+        el.topProgressBar.style.width = '100%';
+
+        el.timerLabel.textContent = '経過時間';
+        el.statTimer.textContent = `${state.elapsedSec.toFixed(1)}s`;
+        el.statTimer.className = 'text-base sm:text-lg font-mono font-extrabold text-emerald-400';
+      }
+
+      el.statCombo.textContent = state.combo;
+      el.statScore.textContent = state.score.toLocaleString();
+    }
+
+    function setPauseButtonState(isPaused) {
+      if (isPaused) {
+        el.pauseIcon.textContent = '▶';
+        el.pauseLabel.textContent = '再開';
+        el.pauseOverlay.classList.remove('hidden');
+        el.pauseOverlay.classList.add('flex');
+      } else {
+        el.pauseIcon.textContent = '⏸';
+        el.pauseLabel.textContent = '一時停止';
+        el.pauseOverlay.classList.add('hidden');
+        el.pauseOverlay.classList.remove('flex');
+      }
+    }
+
+    function togglePauseGame() {
+      if (state.status === 'playing') {
+        state.status = 'paused';
+        state.pausedAtTime = performance.now();
+        setPauseButtonState(true);
+      } else if (state.status === 'paused') {
+        state.pausedAccumMs += (performance.now() - state.pausedAtTime);
+        state.lastTickTime = performance.now();
+        state.status = 'playing';
+        setPauseButtonState(false);
+        el.universalInput.focus();
+      }
+    }
+
+    function startGame() {
+      if (state.status === 'playing') return;
+      if (state.genre === 'custom_only' && state.customQuizzes.length === 0) {
+        switchMainView('editor');
+        return;
+      }
+
+      clearInterval(state.timerId);
+      state.status = 'playing';
+      state.battleOutcome = null;
+      state.startTime = performance.now();
+      state.lastTickTime = performance.now();
+      state.pausedAccumMs = 0;
+      state.elapsedSec = 0;
+      state.timeLeft = 60;
+      state.score = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.solvedCount = 0;
+      state.sparkSolvedCount = 0;
+      state.totalCorrectKeys = 0;
+      state.questionIndex = 0;
+
+      state.battle.wave = 1;
+      state.battle.playerHp = 100;
+      state.battle.playerMaxHp = 100;
+      state.battle.defeatedCount = 0;
+      state.battle.exp = 0;
+
+      el.pauseToggleBtn.disabled = false;
+      setPauseButtonState(false);
+
+      buildQuizDeck();
+      if (state.gameMode === 'battle') {
+        spawnEnemyForWave(1);
+      } else {
+        renderBattleHud();
+      }
+
+      el.startOverlay.classList.add('opacity-0', 'pointer-events-none');
+      el.resultModal.classList.add('hidden');
+      el.resultModal.classList.remove('flex');
+
+      el.universalInput.value = '';
+      el.universalInput.focus();
+
+      sfx.ensureContext();
+      loadNextQuestion();
+      updateStatsHUD();
+
+      state.timerId = setInterval(() => {
+        if (state.status !== 'playing') {
+          state.lastTickTime = performance.now();
+          return;
+        }
+        const now = performance.now();
+        const dtSec = (now - state.lastTickTime) / 1000;
+        state.lastTickTime = now;
+        state.elapsedSec = (now - state.startTime - state.pausedAccumMs) / 1000;
+
+        if (state.rule === '60s') {
+          state.timeLeft = Math.max(0, 60 - state.elapsedSec);
+          if (state.timeLeft <= 0) {
+            updateStatsHUD();
+            finishGame('timeup');
+            return;
+          }
+        }
+
+        if (state.gameMode === 'battle' && state.battle.enemy && !state.isTransitioning) {
+          state.battle.enemyCharge += state.battle.enemy.speedPerSec * dtSec;
+          if (state.battle.enemyCharge >= 100) {
+            handleEnemyAttackPlayer();
+            return;
+          }
+          renderBattleHud();
+        }
+
+        updateStatsHUD();
+      }, 80);
+    }
+
+    function resetGame() {
+      clearInterval(state.timerId);
+      state.status = 'idle';
+      state.battleOutcome = null;
+      state.elapsedSec = 0;
+      state.timeLeft = 60;
+      state.score = 0;
+      state.combo = 0;
+      state.solvedCount = 0;
+      state.sparkSolvedCount = 0;
+      state.totalCorrectKeys = 0;
+      state.battle.playerHp = 100;
+      state.battle.enemyCharge = 0;
+
+      el.pauseToggleBtn.disabled = true;
+      setPauseButtonState(false);
+
+      el.startOverlay.classList.remove('opacity-0', 'pointer-events-none');
+      el.resultModal.classList.add('hidden');
+      el.resultModal.classList.remove('flex');
+      el.typingCard.classList.remove('border-rose-500', 'dark:border-rose-500');
+
+      updateStartOverlayAvailability();
+      buildQuizDeck();
+      if (state.gameMode === 'battle') {
+        spawnEnemyForWave(1);
+      } else {
+        renderBattleHud();
+      }
+      loadNextQuestion();
+      updateNextKeyHighlight(null);
+      updateStatsHUD();
+    }
+
+    function finishGame(outcome = 'victory') {
+      clearInterval(state.timerId);
+      state.status = 'finished';
+      state.battleOutcome = outcome;
+      el.pauseToggleBtn.disabled = true;
+      updateNextKeyHighlight(null);
+
+      const duration = Math.max(1, state.rule === '60s' ? 60 : state.elapsedSec);
+      const kpm = Math.round((state.totalCorrectKeys / duration) * 60);
+
+      let rank = 'B';
+      let gradient = 'from-emerald-400 to-teal-600';
+      if (outcome === 'defeat') {
+        rank = 'KO';
+        gradient = 'from-rose-500 to-slate-600';
+      } else if (state.score >= 4500) {
+        rank = 'S+';
+        gradient = 'from-amber-300 via-orange-500 to-rose-500';
+      } else if (state.score >= 3000) {
+        rank = 'S';
+        gradient = 'from-amber-400 via-orange-500 to-pink-500';
+      } else if (state.score >= 1800) {
+        rank = 'A';
+        gradient = 'from-indigo-400 via-purple-500 to-pink-500';
+      } else if (state.score < 800) {
+        rank = 'C';
+        gradient = 'from-slate-400 to-slate-600';
+      }
+
+      if (state.gameMode === 'battle') {
+        el.resultBadgeLabel.textContent = outcome === 'defeat' ? 'BATTLE DEFEAT' : 'BATTLE REPORT';
+        el.resultHeadingTitle.textContent = outcome === 'defeat' ? '力尽きた…！再戦しよう' : '討伐リザルト';
+        el.resultPrimaryMetricLabel.textContent = '撃破モンスター';
+        el.resultSolved.textContent = `${state.battle.defeatedCount}体`;
+        el.resultSecondaryMetricLabel.textContent = '獲得EXP';
+        el.resultSparkCount.textContent = `${state.battle.exp} EXP`;
+      } else {
+        el.resultBadgeLabel.textContent = 'BRAIN SPARK RESULT';
+        el.resultHeadingTitle.textContent = '結果発表';
+        el.resultPrimaryMetricLabel.textContent = '正解数';
+        el.resultSolved.textContent = `${state.solvedCount}問`;
+        el.resultSecondaryMetricLabel.textContent = '自力ひらめき';
+        el.resultSparkCount.textContent = `${state.sparkSolvedCount}回`;
+      }
+
+      el.resultRank.textContent = rank;
+      el.resultRank.className = `text-5xl sm:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br ${gradient}`;
+      el.resultScore.textContent = state.score.toLocaleString();
+      el.resultKpm.textContent = `${kpm} KPM`;
+      el.resultMaxCombo.textContent = `${state.maxCombo}`;
+
+      el.resultModal.classList.remove('hidden');
+      el.resultModal.classList.add('flex');
+      sfx.playSparkCorrect(outcome !== 'defeat');
+    }
+
+    /**
+     * =========================================================================
+     * 8. 問題作成・編集・保存・JSON入出力・試し打ちロジック
+     * =========================================================================
+     */
+    function loadCustomQuizzesFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_CUSTOM);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            state.customQuizzes = parsed;
+          }
+        }
+      } catch (e) {
+        state.customQuizzes = [];
+      }
+      updateCustomCountBadges();
+    }
+
+    function saveCustomQuizzesToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_CUSTOM, JSON.stringify(state.customQuizzes));
+      } catch (e) {}
+      updateCustomCountBadges();
+    }
+
+    function updateCustomCountBadges() {
+      const count = state.customQuizzes.length;
+      el.navCustomCountBadge.textContent = String(count);
+      el.customListCountLabel.textContent = `${count}件`;
+    }
+
+    function getDraftQuizFromForm() {
+      const genre = el.formGenre.value || 'riddle';
+      const q = el.formQuestion.value.trim();
+      const display = el.formDisplay.value.trim();
+      const rawKana = el.formKana.value.trim();
+      const kana = normalizeKatakanaToHiragana(rawKana).replace(/\s+/g, '');
+      const hint = el.formHint.value.trim();
+
+      return {
+        id: el.editingQuizId.value || `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        genre,
+        q,
+        display: display || kana,
+        kana,
+        hint: hint || `「${kana}」が答えです（${kana.length}文字）`
+      };
+    }
+
+    function validateDraftQuiz(draft) {
+      if (!draft.q) return '問題文を入力してください。';
+      if (!draft.display) return '答えの表記を入力してください。';
+      if (!draft.kana) return 'タイピング判定用の読み（ひらがな）を入力してください。';
+      if (!/^[ぁ-んー0-9a-z\-]+$/.test(draft.kana)) {
+        return '「読み」にはひらがな（または数字・長音ー）を指定してください。';
+      }
+      return '';
+    }
+
+    function updateEditorPreview() {
+      const rawKana = el.formKana.value;
+      const normalizedKana = normalizeKatakanaToHiragana(rawKana).replace(/\s+/g, '');
+
+      if (rawKana && rawKana.trim() !== normalizedKana) {
+        el.kanaNormalizeHint.textContent = `ひらがな判定用に変換: 「${normalizedKana}」`;
+        el.kanaNormalizeHint.classList.remove('hidden');
+      } else {
+        el.kanaNormalizeHint.classList.add('hidden');
+      }
+
+      const genre = el.formGenre.value || 'riddle';
+      const q = el.formQuestion.value.trim() || '問題文を入力するとここにプレビューされます';
+      const display = el.formDisplay.value.trim() || normalizedKana || '-';
+      const hint = el.formHint.value.trim() || (normalizedKana ? `${normalizedKana.length}文字の答えです` : '-');
+
+      el.previewGenreBadge.textContent = GENRE_LABELS[genre] || '💡 クイズ';
+      el.previewQuestionText.textContent = q;
+      el.previewKanaLengthBadge.textContent = `${normalizedKana.length}文字`;
+      el.previewCircles.textContent = normalizedKana ? `伏せ字: ${'〇'.repeat(normalizedKana.length)}` : '伏せ字: -';
+      el.previewHintText.textContent = hint;
+      el.previewAnswerText.textContent = normalizedKana ? `${display}（${normalizedKana}）` : display;
+
+      if (normalizedKana) {
+        const tracker = new GuidedRomajiTracker(normalizedKana);
+        el.previewRomajiSample.textContent = tracker.getDisplayParts().remaining;
+      } else {
+        el.previewRomajiSample.textContent = '-';
+      }
+    }
+
+    function clearEditorForm() {
+      el.editingQuizId.value = '';
+      el.formGenre.value = 'riddle';
+      el.formQuestion.value = '';
+      el.formDisplay.value = '';
+      el.formKana.value = '';
+      el.formHint.value = '';
+      el.editorErrorBox.classList.add('hidden');
+      el.saveQuizBtnLabel.textContent = '問題を保存する';
+      el.editorFormHeading.innerHTML = '<span>✨</span><span>オリジナル問題を作る</span>';
+      updateEditorPreview();
+    }
+
+    function startEditingCustomQuiz(id) {
+      const target = state.customQuizzes.find(item => item.id === id);
+      if (!target) return;
+
+      el.editingQuizId.value = target.id;
+      el.formGenre.value = target.genre;
+      el.formQuestion.value = target.q;
+      el.formDisplay.value = target.display;
+      el.formKana.value = target.kana;
+      el.formHint.value = target.hint;
+      el.editorErrorBox.classList.add('hidden');
+      el.saveQuizBtnLabel.textContent = '変更を保存する';
+      el.editorFormHeading.innerHTML = '<span>✏️</span><span>自作問題を編集する</span>';
+      updateEditorPreview();
+      el.formQuestion.focus();
+    }
+
+    function deleteCustomQuiz(id) {
+      const target = state.customQuizzes.find(item => item.id === id);
+      if (!target) return;
+      openConfirmDialog(
+        '自作問題の削除',
+        `「${target.display}（${target.q.slice(0, 20)}...）」を削除しますか？`,
+        () => {
+          state.customQuizzes = state.customQuizzes.filter(item => item.id !== id);
+          saveCustomQuizzesToStorage();
+          if (el.editingQuizId.value === id) {
+            clearEditorForm();
+          }
+          renderCustomQuestionsList();
+          showToast('自作問題を削除しました');
+        }
+      );
+    }
+
+    function renderCustomQuestionsList() {
+      el.customQuestionsList.innerHTML = '';
+      if (state.customQuizzes.length === 0) {
+        el.customQuestionsList.innerHTML = `
+          <div class="p-6 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center space-y-2">
+            <div class="text-2xl">📝</div>
+            <p class="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300">まだ自作問題はありません</p>
+            <p class="text-xs text-slate-400">左のフォームから作成するか、「+ サンプル追加」をお試しください。</p>
+          </div>
+        `;
+        return;
+      }
+
+      state.customQuizzes.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2';
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">${GENRE_LABELS[item.genre] || '💡 クイズ'}</span>
+            <span class="text-xs font-mono font-bold text-amber-500">${item.display}（${item.kana}）</span>
+          </div>
+          <p class="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">${escapeHtml(item.q)}</p>
+          <div class="flex items-center justify-end gap-1.5 pt-1">
+            <button type="button" data-test-id="${item.id}" class="test-item-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25 transition">🎯 試し打ち</button>
+            <button type="button" data-edit-id="${item.id}" class="edit-item-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 transition">編集</button>
+            <button type="button" data-del-id="${item.id}" class="del-item-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 transition">削除</button>
+          </div>
+        `;
+        el.customQuestionsList.appendChild(card);
+      });
+
+      el.customQuestionsList.querySelectorAll('.test-item-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = state.customQuizzes.find(q => q.id === btn.dataset.testId);
+          if (item) openTestPlayModal(item);
+        });
+      });
+
+      el.customQuestionsList.querySelectorAll('.edit-item-btn').forEach(btn => {
+        btn.addEventListener('click', () => startEditingCustomQuiz(btn.dataset.editId));
+      });
+
+      el.customQuestionsList.querySelectorAll('.del-item-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteCustomQuiz(btn.dataset.delId));
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // --- 試し打ちテストプレイ機能 ---
+    function openTestPlayModal(quiz) {
+      state.testPlay.active = true;
+      state.testPlay.quiz = quiz;
+      resetTestPlayRound();
+      el.testPlayModal.classList.remove('hidden');
+      el.testPlayModal.classList.add('flex');
+      sfx.ensureContext();
+    }
+
+    function closeTestPlayModal() {
+      state.testPlay.active = false;
+      state.testPlay.quiz = null;
+      el.testPlayModal.classList.add('hidden');
+      el.testPlayModal.classList.remove('flex');
+    }
+
+    function resetTestPlayRound() {
+      const quiz = state.testPlay.quiz;
+      if (!quiz) return;
+      state.testPlay.hintStage = 0;
+      state.testPlay.freeRomajiBuffer = '';
+      state.testPlay.guidedTracker = new GuidedRomajiTracker(quiz.kana);
+      state.testPlay.solved = false;
+      el.testPlaySuccessBanner.classList.add('hidden');
+      renderTestPlayView();
+    }
+
+    function advanceTestPlayHint() {
+      if (!state.testPlay.active || state.testPlay.solved || state.testPlay.hintStage >= 2) return;
+      state.testPlay.hintStage++;
+      sfx.playHint();
+      if (state.testPlay.hintStage === 2) {
+        state.testPlay.guidedTracker = new GuidedRomajiTracker(state.testPlay.quiz.kana);
+        for (const ch of state.testPlay.freeRomajiBuffer) {
+          if (!state.testPlay.guidedTracker.inputChar(ch)) break;
+        }
+      }
+      renderTestPlayView();
+    }
+
+    function renderTestPlayView() {
+      const quiz = state.testPlay.quiz;
+      if (!quiz) return;
+      el.testPlayQuestion.textContent = quiz.q;
+
+      if (state.testPlay.hintStage === 0) {
+        el.testPlayHintText.textContent = `文字数: ${quiz.kana.length}文字（${'〇'.repeat(quiz.kana.length)}）`;
+      } else if (state.testPlay.hintStage === 1) {
+        el.testPlayHintText.textContent = `ヒント: ${quiz.hint}`;
+      } else {
+        el.testPlayHintText.textContent = `答え: ${quiz.display}（${quiz.kana}）`;
+      }
+
+      el.testPlaySlots.innerHTML = '';
+      const converted = state.testPlay.hintStage < 2
+        ? convertRomajiBufferToKana(state.testPlay.freeRomajiBuffer)
+        : '';
+      const guidedParts = state.testPlay.guidedTracker.getDisplayParts();
+
+      for (let i = 0; i < quiz.kana.length; i++) {
+        const box = document.createElement('div');
+        box.className = 'w-9 h-10 rounded-xl border flex items-center justify-center font-extrabold text-base ';
+        if (state.testPlay.hintStage < 2) {
+          const ch = converted[i];
+          if (ch !== undefined) {
+            box.className += ch === quiz.kana[i]
+              ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400'
+              : 'bg-amber-500/15 border-amber-500 text-amber-400';
+            box.textContent = ch;
+          } else {
+            box.className += 'bg-slate-100 dark:bg-slate-800 border-dashed border-slate-300 dark:border-slate-700 text-slate-400';
+            box.textContent = '？';
+          }
+        } else {
+          const done = i < guidedParts.completedKanaCount;
+          box.className += done
+            ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400'
+            : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-300';
+          box.textContent = quiz.kana[i];
+        }
+        el.testPlaySlots.appendChild(box);
+      }
+
+      if (state.testPlay.hintStage < 2) {
+        el.testPlayRomaji.innerHTML = state.testPlay.freeRomajiBuffer
+          ? `<span class="text-amber-400 font-bold">${escapeHtml(state.testPlay.freeRomajiBuffer)}</span>`
+          : `<span class="text-slate-400 text-xs font-sans">ローマ字で答えを入力してください</span>`;
+      } else {
+        el.testPlayRomaji.innerHTML = `<span class="text-emerald-400">${escapeHtml(guidedParts.typed)}</span><span class="text-indigo-400 font-extrabold">${escapeHtml(guidedParts.remaining)}</span>`;
+      }
+    }
+
+    function processTestPlayKey(rawChar) {
+      if (!state.testPlay.active || state.testPlay.solved || !state.testPlay.quiz) return;
+      const norm = normalizeKeyInput(rawChar);
+      if (!norm) return;
+
+      for (const ch of norm) {
+        if (state.testPlay.hintStage < 2) {
+          sfx.playKey();
+          state.testPlay.freeRomajiBuffer += ch;
+          const kanaNow = convertRomajiBufferToKana(state.testPlay.freeRomajiBuffer);
+          renderTestPlayView();
+          if (kanaNow === state.testPlay.quiz.kana) {
+            state.testPlay.solved = true;
+            sfx.playSparkCorrect(true);
+            el.testPlaySuccessBanner.classList.remove('hidden');
+            return;
+          }
+        } else {
+          const ok = state.testPlay.guidedTracker.inputChar(ch);
+          if (ok) {
+            sfx.playKey();
+            renderTestPlayView();
+            if (state.testPlay.guidedTracker.isFinished()) {
+              state.testPlay.solved = true;
+              sfx.playSparkCorrect(false);
+              el.testPlaySuccessBanner.classList.remove('hidden');
+              return;
+            }
+          } else {
+            sfx.playMiss();
+          }
+        }
+      }
+    }
+
+    // --- メインビュー切り替え（プレイ <-> 苦手分析 <-> 問題作成・管理） ---
+    function switchMainView(viewName) {
+      state.activeView = viewName;
+
+      el.playView.classList.add('hidden');
+      el.analysisView.classList.add('hidden');
+      el.editorView.classList.add('hidden');
+
+      const activeTabCls = 'px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm flex items-center gap-1';
+      const idleTabCls = 'px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1';
+
+      el.navPlayBtn.className = idleTabCls;
+      el.navAnalysisBtn.className = idleTabCls;
+      el.navEditorBtn.className = idleTabCls;
+
+      if (viewName === 'play') {
+        el.playView.classList.remove('hidden');
+        el.navPlayBtn.className = activeTabCls;
+        resetGame();
+      } else if (viewName === 'analysis') {
+        clearInterval(state.timerId);
+        state.status = 'idle';
+        setPauseButtonState(false);
+        el.analysisView.classList.remove('hidden');
+        el.navAnalysisBtn.className = activeTabCls;
+        renderAnalysisDashboard();
+      } else {
+        clearInterval(state.timerId);
+        state.status = 'idle';
+        setPauseButtonState(false);
+        el.editorView.classList.remove('hidden');
+        el.navEditorBtn.className = activeTabCls;
+        renderCustomQuestionsList();
+        updateEditorPreview();
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 9. PC物理キーボード完全対応イベントハンドラ（入力フォーム干渉防止付き）
+     * =========================================================================
+     */
+    function isUserTypingInFormField(target) {
+      if (!target) return false;
+      if (target === el.universalInput) return false;
+      const tag = target.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+    }
+
+    function keepInputFocused() {
+      if (state.activeView === 'play' && state.status === 'playing' && !isUserTypingInFormField(document.activeElement)) {
+        el.universalInput.focus();
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (!el.shortcutsModal.classList.contains('hidden')) {
+        if (e.key === 'Escape' || e.key === '?') {
+          e.preventDefault();
+          el.shortcutsModal.classList.add('hidden');
+          el.shortcutsModal.classList.remove('flex');
+        }
+        return;
+      }
+
+      if (!el.confirmDialogModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeConfirmDialog();
+        }
+        return;
+      }
+
+      if (state.testPlay.active) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeTestPlayModal();
+          return;
+        }
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          advanceTestPlayHint();
+          return;
+        }
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          if (state.testPlay.hintStage < 2 && state.testPlay.freeRomajiBuffer.length > 0) {
+            state.testPlay.freeRomajiBuffer = state.testPlay.freeRomajiBuffer.slice(0, -1);
+            sfx.playKey();
+            renderTestPlayView();
+          }
+          return;
+        }
+        if (e.key === ' ') {
+          e.preventDefault();
+          return;
+        }
+        if (e.key === 'Process' || e.isComposing) {
+          if (e.code && e.code.startsWith('Key')) {
+            processTestPlayKey(e.code.slice(3).toLowerCase());
+            return;
+          }
+          if (e.code && e.code.startsWith('Digit')) {
+            processTestPlayKey(e.code.slice(5));
+            return;
+          }
+          if (e.code === 'Minus') {
+            processTestPlayKey('-');
+            return;
+          }
+        }
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+          e.preventDefault();
+          processTestPlayKey(e.key);
+        }
+        return;
+      }
+
+      if (state.activeView !== 'play' || isUserTypingInFormField(e.target)) {
+        return;
+      }
+
+      if (e.key === '?' && state.status !== 'playing') {
+        e.preventDefault();
+        el.shortcutsModal.classList.remove('hidden');
+        el.shortcutsModal.classList.add('flex');
+        return;
+      }
+
+      if ((e.key === 'p' || e.key === 'P') && (state.status === 'playing' || state.status === 'paused')) {
+        e.preventDefault();
+        togglePauseGame();
+        return;
+      }
+
+      if (state.status === 'paused') return;
+
+      if (state.status === 'finished') {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          startGame();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          resetGame();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        resetGame();
+        return;
+      }
+
+      if (state.status === 'idle') {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          startGame();
+        }
+        return;
+      }
+
+      if (state.status === 'playing') {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          advanceHintStage();
+          return;
+        }
+
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          el.universalInput.value = '';
+          handleBackspace();
+          return;
+        }
+
+        if (e.key === ' ') {
+          e.preventDefault();
+          return;
+        }
+
+        if (e.key === 'Process' || e.isComposing) {
+          if (e.code && e.code.startsWith('Key')) {
+            const letter = e.code.slice(3).toLowerCase();
+            flashKeyPress(letter);
+            processCharacterInput(letter);
+            setTimeout(() => { el.universalInput.value = ''; }, 0);
+            return;
+          }
+          if (e.code && e.code.startsWith('Digit')) {
+            const digit = e.code.slice(5);
+            flashKeyPress(digit);
+            processCharacterInput(digit);
+            setTimeout(() => { el.universalInput.value = ''; }, 0);
+            return;
+          }
+          if (e.code === 'Minus') {
+            flashKeyPress('-');
+            processCharacterInput('-');
+            setTimeout(() => { el.universalInput.value = ''; }, 0);
+            return;
+          }
+        }
+
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+          e.preventDefault();
+          el.universalInput.value = '';
+          flashKeyPress(e.key);
+          processCharacterInput(e.key);
+        }
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!isUserTypingInFormField(e.target)) {
+        keepInputFocused();
+      }
+    });
+
+    // ナビゲーション切り替え
+    el.navPlayBtn.addEventListener('click', () => switchMainView('play'));
+    el.navAnalysisBtn.addEventListener('click', () => switchMainView('analysis'));
+    el.navEditorBtn.addEventListener('click', () => switchMainView('editor'));
+    el.emptyCustomCreateBtn.addEventListener('click', () => switchMainView('editor'));
+    el.resultCreateBtn.addEventListener('click', () => {
+      el.resultModal.classList.add('hidden');
+      el.resultModal.classList.remove('flex');
+      switchMainView('editor');
+    });
+
+    // 一時停止・再開・キーボード表示切替・ショートカットモーダル
+    el.pauseToggleBtn.addEventListener('click', () => {
+      togglePauseGame();
+      el.pauseToggleBtn.blur();
+    });
+    el.resumeGameBtn.addEventListener('click', () => {
+      if (state.status === 'paused') togglePauseGame();
+    });
+    el.pauseRestartBtn.addEventListener('click', () => {
+      setPauseButtonState(false);
+      resetGame();
+      startGame();
+    });
+
+    el.kbVisibilityBtn.addEventListener('click', () => {
+      state.keyboardVisible = !state.keyboardVisible;
+      el.virtualKeyboardPanel.classList.toggle('hidden', !state.keyboardVisible);
+      el.kbVisibilityBtn.blur();
+      keepInputFocused();
+    });
+
+    el.shortcutsModalBtn.addEventListener('click', () => {
+      if (state.status === 'playing') togglePauseGame();
+      el.shortcutsModal.classList.remove('hidden');
+      el.shortcutsModal.classList.add('flex');
+    });
+    el.closeShortcutsBtn.addEventListener('click', () => {
+      el.shortcutsModal.classList.add('hidden');
+      el.shortcutsModal.classList.remove('flex');
+    });
+    el.closeShortcutsBottomBtn.addEventListener('click', () => {
+      el.shortcutsModal.classList.add('hidden');
+      el.shortcutsModal.classList.remove('flex');
+    });
+
+    // 苦手分析画面アクション
+    el.startWeaknessDrillBtn.addEventListener('click', () => {
+      state.genre = 'weakness';
+      el.genreSelect.value = 'weakness';
+      switchMainView('play');
+      startGame();
+    });
+    el.resetKeyStatsBtn.addEventListener('click', () => {
+      openConfirmDialog('打鍵履歴のリセット', '記録された苦手キー・ミス分析データをすべて初期化しますか？', () => {
+        state.keyStats = {};
+        saveKeyStatsToStorage();
+        renderAnalysisDashboard();
+        showToast('打鍵履歴をリセットしました');
+      });
+    });
+
+    // 確認モーダルボタン
+    el.confirmCancelBtn.addEventListener('click', closeConfirmDialog);
+    el.confirmOkBtn.addEventListener('click', () => {
+      const cb = state.pendingConfirmCallback;
+      closeConfirmDialog();
+      if (typeof cb === 'function') cb();
+    });
+
+    // ゲームモード切替（ひらめき練習 vs 敵を倒すモード）
+    el.gameModeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.gamemode;
+        if (state.gameMode === mode) return;
+        state.gameMode = mode;
+        el.gameModeBtns.forEach(b => {
+          if (b.dataset.gamemode === mode) {
+            b.className = mode === 'battle'
+              ? 'gamemode-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all bg-gradient-to-r from-rose-500 to-indigo-600 text-white shadow-sm'
+              : 'gamemode-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm';
+          } else {
+            b.className = 'gamemode-btn px-2.5 py-1 rounded-lg text-xs font-extrabold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+          }
+        });
+        btn.blur();
+        resetGame();
+      });
+    });
+
+    // ジャンル選択
+    el.genreSelect.addEventListener('change', (e) => {
+      state.genre = e.target.value;
+      el.genreSelect.blur();
+      resetGame();
+    });
+
+    // ルール切替
+    el.ruleBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const selected = btn.dataset.rule;
+        state.rule = selected;
+        el.ruleBtns.forEach(b => {
+          if (b.dataset.rule === selected) {
+            b.className = 'rule-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm';
+          } else {
+            b.className = 'rule-btn px-2.5 py-1 rounded-lg text-xs font-bold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+          }
+        });
+        btn.blur();
+        resetGame();
+      });
+    });
+
+    // スタート・ヒント・リトライ・リセット・シャッフル
+    el.startTriggerBtn.addEventListener('click', () => {
+      el.startTriggerBtn.blur();
+      startGame();
+    });
+    el.hintBtn.addEventListener('click', () => {
+      advanceHintStage();
+      el.hintBtn.blur();
+      keepInputFocused();
+    });
+    el.retryGameBtn.addEventListener('click', () => {
+      el.retryGameBtn.blur();
+      startGame();
+    });
+
+    el.shuffleDeckBtn.addEventListener('click', () => {
+      buildQuizDeck();
+      if (state.status === 'playing') {
+        loadNextQuestion();
+      }
+      sfx.playHint();
+      el.shuffleDeckBtn.blur();
+      showToast('出題順をシャッフルしました');
+      keepInputFocused();
+    });
+
+    el.resetBtn.addEventListener('click', () => {
+      const wasPlaying = state.status === 'playing' || state.status === 'paused';
+      resetGame();
+      if (wasPlaying) {
+        startGame();
+      }
+      el.resetBtn.blur();
+    });
+
+    // 音量＆サウンドミュート
+    el.volumeSlider.addEventListener('input', (e) => {
+      const val = Number(e.target.value);
+      sfx.setVolume(val);
+      el.volumeValueLabel.textContent = `${val}%`;
+      if (val > 0 && !sfx.enabled) {
+        sfx.enabled = true;
+        el.soundOnIcon.classList.remove('hidden');
+        el.soundOffIcon.classList.add('hidden');
+      }
+    });
+
+    el.soundToggleBtn.addEventListener('click', () => {
+      sfx.enabled = !sfx.enabled;
+      if (sfx.enabled) {
+        if (sfx.volume === 0) {
+          sfx.setVolume(75);
+          el.volumeSlider.value = 75;
+          el.volumeValueLabel.textContent = '75%';
+        }
+        el.soundOnIcon.classList.remove('hidden');
+        el.soundOffIcon.classList.add('hidden');
+        sfx.playKey();
+      } else {
+        el.soundOnIcon.classList.add('hidden');
+        el.soundOffIcon.classList.remove('hidden');
+      }
+      el.soundToggleBtn.blur();
+      keepInputFocused();
+    });
+
+    // ライト/ダークテーマ切替
+    function applyTheme(isDark) {
+      const root = document.documentElement;
+      if (isDark) {
+        root.classList.add('dark');
+        el.sunIcon.classList.remove('hidden');
+        el.moonIcon.classList.add('hidden');
+      } else {
+        root.classList.remove('dark');
+        el.sunIcon.classList.add('hidden');
+        el.moonIcon.classList.remove('hidden');
+      }
+    }
+
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(prefersDark !== false);
+
+    el.themeToggleBtn.addEventListener('click', () => {
+      const nextDark = !document.documentElement.classList.contains('dark');
+      applyTheme(nextDark);
+      el.themeToggleBtn.blur();
+      keepInputFocused();
+    });
+
+    // 問題作成フォームイベント
+    [el.formGenre, el.formQuestion, el.formDisplay, el.formKana, el.formHint].forEach(inputEl => {
+      inputEl.addEventListener('input', () => {
+        el.editorErrorBox.classList.add('hidden');
+        updateEditorPreview();
+      });
+    });
+
+    el.customQuizForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const draft = getDraftQuizFromForm();
+      const errMsg = validateDraftQuiz(draft);
+      if (errMsg) {
+        el.editorErrorBox.textContent = errMsg;
+        el.editorErrorBox.classList.remove('hidden');
+        return;
+      }
+
+      const existingIdx = state.customQuizzes.findIndex(item => item.id === draft.id);
+      if (existingIdx >= 0) {
+        state.customQuizzes[existingIdx] = draft;
+        showToast('自作問題を更新しました！');
+      } else {
+        state.customQuizzes.unshift(draft);
+        showToast('新しい自作問題を保存しました！');
+      }
+
+      saveCustomQuizzesToStorage();
+      renderCustomQuestionsList();
+      clearEditorForm();
+    });
+
+    el.testPlayCurrentBtn.addEventListener('click', () => {
+      const draft = getDraftQuizFromForm();
+      const errMsg = validateDraftQuiz(draft);
+      if (errMsg) {
+        el.editorErrorBox.textContent = `試し打ちするには：${errMsg}`;
+        el.editorErrorBox.classList.remove('hidden');
+        return;
+      }
+      el.editorErrorBox.classList.add('hidden');
+      openTestPlayModal(draft);
+    });
+
+    el.clearFormBtn.addEventListener('click', clearEditorForm);
+
+    el.addSampleCustomBtn.addEventListener('click', () => {
+      const existingIds = new Set(state.customQuizzes.map(q => q.id));
+      let added = 0;
+      SAMPLE_CUSTOM_QUIZZES.forEach(sample => {
+        if (!existingIds.has(sample.id)) {
+          state.customQuizzes.push({ ...sample });
+          added++;
+        }
+      });
+      if (added === 0) {
+        state.customQuizzes.push({
+          id: `sample-${Date.now()}`,
+          genre: 'riddle',
+          q: '食べると「あまい」のに、逆さに読むと「いまあ」になるものは？',
+          display: 'あまい',
+          kana: 'あまい',
+          hint: 'お砂糖やお菓子を表す3文字の言葉です'
+        });
+      }
+      saveCustomQuizzesToStorage();
+      renderCustomQuestionsList();
+      showToast('サンプル問題を追加しました！');
+    });
+
+    el.exportJsonBtn.addEventListener('click', () => {
+      try {
+        const payload = JSON.stringify(state.customQuizzes, null, 2);
+        const blob = new Blob([payload], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `brainspark-custom-quizzes-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('JSONファイルを書き出しました');
+      } catch (e) {
+        showToast('書き出しに失敗しました');
+      }
+    });
+
+    el.importJsonInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || ''));
+          if (!Array.isArray(parsed)) {
+            showToast('JSONの形式が正しくありません');
+            return;
+          }
+          let importedCount = 0;
+          parsed.forEach(item => {
+            if (item && typeof item.q === 'string' && typeof item.kana === 'string') {
+              const normKana = normalizeKatakanaToHiragana(item.kana).replace(/\s+/g, '');
+              if (normKana) {
+                state.customQuizzes.push({
+                  id: item.id || `imp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  genre: GENRE_LABELS[item.genre] ? item.genre : 'riddle',
+                  q: item.q.trim(),
+                  display: (item.display || normKana).trim(),
+                  kana: normKana,
+                  hint: (item.hint || `${normKana.length}文字の答えです`).trim()
+                });
+                importedCount++;
+              }
+            }
+          });
+          saveCustomQuizzesToStorage();
+          renderCustomQuestionsList();
+          showToast(`${importedCount}件の問題を読み込みました`);
+        } catch (err) {
+          showToast('JSONの読み込みに失敗しました');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    el.closeTestPlayBtn.addEventListener('click', closeTestPlayModal);
+    el.testPlayHintBtn.addEventListener('click', advanceTestPlayHint);
+    el.testPlayRetryBtn.addEventListener('click', resetTestPlayRound);
+
+    // 初期化
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCustomQuizzesFromStorage();
+      loadKeyStatsFromStorage();
+      buildVirtualKeyboard();
+      resetGame();
+      updateEditorPreview();
+    });
+  </script>
+</body>
+</html>
