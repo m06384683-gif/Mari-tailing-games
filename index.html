@@ -1861,6 +1861,24 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
       return str.replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60)).trim();
     }
 
+    /**
+     * 答えが英語（英数字・記号）かどうかの判定と正規化
+     * ひらがな・カタカナ・漢字を含まず、英字（a-z）を含む（または英数字のみで構成される）問題を英語解答とみなす
+     */
+    function isEnglishAnswerQuiz(quiz) {
+      if (!quiz) return false;
+      const raw = String(quiz.kana || quiz.display || '').trim();
+      if (!raw) return false;
+      const hasKanaOrKanji = /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/.test(raw);
+      if (hasKanaOrKanji) return false;
+      return /^[a-zA-Z0-9\-_' ]+$/.test(raw);
+    }
+
+    function getTargetEnglishAnswer(quiz) {
+      if (!quiz) return '';
+      return String(quiz.kana || quiz.display || '').trim().toLowerCase();
+    }
+
     const ROMAJI_TO_KANA_TABLE = [
       ['sha', 'しゃ'], ['shi', 'し'], ['shu', 'しゅ'], ['she', 'しぇ'], ['sho', 'しょ'],
       ['sya', 'しゃ'], ['syi', 'しぃ'], ['syu', 'しゅ'], ['sye', 'しぇ'], ['syo', 'しょ'],
@@ -4049,15 +4067,22 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
       state.study.index = idx;
       const item = list[idx];
       const isMarked = state.studyBookmarks.has(item.id);
+      const isEng = isEnglishAnswerQuiz(item);
 
-      el.flashcardGenreBadge.textContent = GENRE_LABELS[item.genre] || '💡 クイズ';
+      el.flashcardGenreBadge.textContent = GENRE_LABELS[item.genre] || (isEng ? '🔤 英語クイズ' : '💡 クイズ');
       el.flashcardIndexLabel.textContent = `${idx + 1} / ${list.length}`;
       el.flashcardBookmarkBtn.textContent = isMarked ? '⭐ 要復習登録済み' : '☆ 要復習に追加';
       el.flashcardQuestionText.textContent = item.q;
 
-      const tracker = new GuidedRomajiTracker(item.kana);
-      el.flashcardAnswerDisplay.textContent = `${item.display}（${item.kana}）`;
-      el.flashcardRomajiDisplay.textContent = `ローマ字入力例: ${tracker.getDisplayParts().remaining}`;
+      if (isEng) {
+        const engAns = getTargetEnglishAnswer(item);
+        el.flashcardAnswerDisplay.textContent = `${item.display}`;
+        el.flashcardRomajiDisplay.textContent = `英語解答（そのまま英字入力）: ${engAns}`;
+      } else {
+        const tracker = new GuidedRomajiTracker(item.kana);
+        el.flashcardAnswerDisplay.textContent = `${item.display}（${item.kana}）`;
+        el.flashcardRomajiDisplay.textContent = `ローマ字入力例: ${tracker.getDisplayParts().remaining}`;
+      }
       el.flashcardHintDisplay.textContent = `解説・ヒント: ${item.hint}`;
 
       if (state.study.flipped) {
@@ -4086,11 +4111,12 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
     function scoreQuizForWeakness(quiz) {
       const weakKeys = getRankedWeakKeys().slice(0, 6).map(w => w.key);
       if (weakKeys.length === 0) return Math.random();
-      const tracker = new GuidedRomajiTracker(quiz.kana);
-      const sampleRomaji = tracker.getDisplayParts().remaining.toLowerCase();
+      const sampleText = isEnglishAnswerQuiz(quiz)
+        ? getTargetEnglishAnswer(quiz)
+        : new GuidedRomajiTracker(quiz.kana).getDisplayParts().remaining.toLowerCase();
       let matchCount = 0;
       for (const wk of weakKeys) {
-        if (sampleRomaji.includes(wk)) matchCount++;
+        if (sampleText.includes(wk)) matchCount++;
       }
       return matchCount * 10 + Math.random();
     }
@@ -4326,14 +4352,20 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
         el.hintBtn.classList.add('opacity-40', 'cursor-not-allowed');
       }
 
-      const kanaLen = quiz.kana.length;
+      const isEng = isEnglishAnswerQuiz(quiz);
+      const targetStr = isEng ? getTargetEnglishAnswer(quiz) : quiz.kana;
+      const unitLabel = isEng ? '文字（英語）' : '文字';
+      const kanaLen = targetStr.length;
       const circles = '〇'.repeat(kanaLen);
+
       if (state.hintStage === 0) {
-        el.hintContentText.textContent = `読みの文字数: ${kanaLen}文字（${circles}）`;
+        el.hintContentText.textContent = `答えの文字数: ${kanaLen}${unitLabel}（${circles}）`;
       } else if (state.hintStage === 1) {
-        el.hintContentText.textContent = `【連想ヒント】${quiz.hint}（${kanaLen}文字）`;
+        el.hintContentText.textContent = `【連想ヒント】${quiz.hint}（${kanaLen}${unitLabel}）`;
       } else {
-        el.hintContentText.textContent = `【答え】${quiz.display}（${quiz.kana}）`;
+        el.hintContentText.textContent = isEng
+          ? `【答え】${quiz.display}（英語入力: ${targetStr}）`
+          : `【答え】${quiz.display}（${quiz.kana}）`;
       }
 
       renderTypingProgress();
@@ -4344,23 +4376,26 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
       if (!quiz) return;
 
       el.kanaSlotsDisplay.innerHTML = '';
+      const isEng = isEnglishAnswerQuiz(quiz);
+      const targetAnswer = isEng ? getTargetEnglishAnswer(quiz) : quiz.kana;
 
       if (state.hintStage < 2) {
-        const convertedKana = convertRomajiBufferToKana(state.freeRomajiBuffer);
-        const targetKana = quiz.kana;
-        const maxSlots = Math.max(targetKana.length, convertedKana.length);
+        const currentProgressText = isEng
+          ? state.freeRomajiBuffer.toLowerCase()
+          : convertRomajiBufferToKana(state.freeRomajiBuffer);
+        const maxSlots = Math.max(targetAnswer.length, currentProgressText.length);
 
         for (let i = 0; i < maxSlots; i++) {
           const slot = document.createElement('div');
-          const typedChar = convertedKana[i];
-          const expectedChar = targetKana[i];
+          const typedChar = currentProgressText[i];
+          const expectedChar = targetAnswer[i];
 
           if (typedChar !== undefined) {
             const isMatch = typedChar === expectedChar;
             slot.className = isMatch
               ? 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-emerald-500/15 border-2 border-emerald-500 text-emerald-400 font-extrabold text-lg sm:text-xl flex items-center justify-center shadow-sm transition-all'
               : 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-amber-500/15 border-2 border-amber-500 text-amber-400 font-extrabold text-lg sm:text-xl flex items-center justify-center shadow-sm transition-all';
-            slot.textContent = typedChar;
+            slot.textContent = isEng ? typedChar.toUpperCase() : typedChar;
           } else {
             slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-slate-100 dark:bg-slate-800/90 border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-bold text-lg flex items-center justify-center';
             slot.textContent = '？';
@@ -4372,11 +4407,15 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
         if (state.freeRomajiBuffer.length === 0) {
           const placeholder = document.createElement('span');
           placeholder.className = 'text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-sans';
-          placeholder.textContent = 'ひらめいた答えをローマ字でタイプ！（間違えたら Backspace で修正）';
+          placeholder.textContent = isEng
+            ? '英語の答えをそのまま英字でタイプ！（間違えたら Backspace で修正）'
+            : 'ひらめいた答えをローマ字でタイプ！（間違えたら Backspace で修正）';
           el.romajiLineDisplay.appendChild(placeholder);
         } else {
           const bufSpan = document.createElement('span');
-          bufSpan.className = 'text-amber-400 font-bold tracking-widest';
+          bufSpan.className = isEng
+            ? 'text-sky-400 font-bold tracking-widest'
+            : 'text-amber-400 font-bold tracking-widest';
           bufSpan.textContent = state.freeRomajiBuffer;
           el.romajiLineDisplay.appendChild(bufSpan);
 
@@ -4386,6 +4425,57 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
         }
 
         updateNextKeyHighlight(null);
+      } else if (isEng) {
+        // ヒント全開示時：英語の答えを1文字ずつガイド
+        const typedEng = state.freeRomajiBuffer.toLowerCase();
+        let matchedPrefixLen = 0;
+        while (
+          matchedPrefixLen < typedEng.length &&
+          matchedPrefixLen < targetAnswer.length &&
+          typedEng[matchedPrefixLen] === targetAnswer[matchedPrefixLen]
+        ) {
+          matchedPrefixLen++;
+        }
+
+        for (let i = 0; i < targetAnswer.length; i++) {
+          const slot = document.createElement('div');
+          const isDone = i < matchedPrefixLen;
+          const isCurrent = i === matchedPrefixLen;
+
+          if (isDone) {
+            slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-emerald-500/15 border-2 border-emerald-500 text-emerald-400 font-mono font-extrabold text-lg sm:text-xl flex items-center justify-center';
+          } else if (isCurrent) {
+            slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-indigo-500/15 border-2 border-indigo-500 text-indigo-400 font-mono font-extrabold text-lg sm:text-xl flex items-center justify-center scale-105 shadow-sm';
+          } else {
+            slot.className = 'w-9 h-10 sm:w-11 sm:h-12 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-mono font-bold text-lg sm:text-xl flex items-center justify-center';
+          }
+          slot.textContent = targetAnswer[i].toUpperCase();
+          el.kanaSlotsDisplay.appendChild(slot);
+        }
+
+        const remainingEng = targetAnswer.slice(matchedPrefixLen);
+        el.romajiLineDisplay.innerHTML = '';
+        if (matchedPrefixLen > 0) {
+          const tSpan = document.createElement('span');
+          tSpan.className = 'text-emerald-400 font-bold';
+          tSpan.textContent = targetAnswer.slice(0, matchedPrefixLen);
+          el.romajiLineDisplay.appendChild(tSpan);
+        }
+        if (remainingEng) {
+          const nextSpan = document.createElement('span');
+          nextSpan.className = 'text-indigo-400 bg-indigo-500/15 px-1 rounded border-b-2 border-indigo-500 font-extrabold mx-0.5';
+          nextSpan.textContent = remainingEng[0];
+          el.romajiLineDisplay.appendChild(nextSpan);
+
+          if (remainingEng.length > 1) {
+            const restSpan = document.createElement('span');
+            restSpan.className = 'text-slate-400 dark:text-slate-500';
+            restSpan.textContent = remainingEng.slice(1);
+            el.romajiLineDisplay.appendChild(restSpan);
+          }
+        }
+
+        updateNextKeyHighlight(remainingEng[0] || '');
       } else {
         const { typed, remaining, nextChar, completedKanaCount } = state.guidedTracker.getDisplayParts();
         const targetKana = quiz.kana;
@@ -4518,7 +4608,47 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
       const normalized = normalizeKeyInput(rawChar);
       if (!normalized) return;
 
+      const isEng = isEnglishAnswerQuiz(state.currentQuiz);
+      const targetAnswer = isEng ? getTargetEnglishAnswer(state.currentQuiz) : state.currentQuiz.kana;
+
       for (const ch of normalized) {
+        if (isEng) {
+          // 英語解答モード：入力された英数字をそのまま英語として自動正規化・判定
+          const nextBuffer = state.freeRomajiBuffer + ch;
+          const expectedCharAtPos = targetAnswer[state.freeRomajiBuffer.length];
+
+          if (expectedCharAtPos && ch === expectedCharAtPos) {
+            sfx.playKey();
+            state.freeRomajiBuffer = nextBuffer;
+            state.totalCorrectKeys++;
+            recordKeyHit(ch);
+
+            if (state.gameMode === 'battle') {
+              dealDamageToEnemy(12 + Math.min(20, state.combo * 2), false);
+            }
+
+            renderTypingProgress();
+            if (state.freeRomajiBuffer === targetAnswer) {
+              handleQuestionSolved();
+              return;
+            }
+          } else {
+            state.combo = 0;
+            recordKeyMiss(expectedCharAtPos || ch);
+            if (state.gameMode === 'battle') {
+              state.battle.enemyCharge = Math.min(100, state.battle.enemyCharge + 14);
+              if (state.battle.enemyCharge >= 100) {
+                handleEnemyAttackPlayer();
+                return;
+              }
+              renderBattleHud();
+            }
+            triggerMissShake();
+            updateStatsHUD();
+          }
+          continue;
+        }
+
         if (state.hintStage < 2) {
           sfx.playKey();
           state.freeRomajiBuffer += ch;
@@ -4577,7 +4707,8 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
 
     function handleBackspace() {
       if (state.status !== 'playing' || state.isTransitioning) return;
-      if (state.hintStage < 2 && state.freeRomajiBuffer.length > 0) {
+      const isEng = isEnglishAnswerQuiz(state.currentQuiz);
+      if ((isEng || state.hintStage < 2) && state.freeRomajiBuffer.length > 0) {
         state.freeRomajiBuffer = state.freeRomajiBuffer.slice(0, -1);
         sfx.playKey();
         renderTypingProgress();
@@ -4929,9 +5060,11 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
     function validateDraftQuiz(draft) {
       if (!draft.q) return '問題文を入力してください。';
       if (!draft.display) return '答えの表記を入力してください。';
-      if (!draft.kana) return 'タイピング判定用の読み（ひらがな）を入力してください。';
-      if (!/^[ぁ-んー0-9a-z\-]+$/.test(draft.kana)) {
-        return '「読み」にはひらがな（または数字・長音ー）を指定してください。';
+      if (!draft.kana) return 'タイピング判定用の答え（ひらがな、または英語）を入力してください。';
+      const isValidKana = /^[ぁ-んー0-9a-z\-]+$/.test(draft.kana);
+      const isValidEnglish = /^[a-z0-9\-_' ]+$/.test(draft.kana);
+      if (!isValidKana && !isValidEnglish) {
+        return '「読み / 答え」にはひらがな、または英語・数字を指定してください。';
       }
       return '';
     }
@@ -4939,9 +5072,16 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
     function updateEditorPreview() {
       const rawKana = el.formKana.value;
       const normalizedKana = normalizeKatakanaToHiragana(rawKana).replace(/\s+/g, '');
+      const previewDraft = { kana: normalizedKana, display: el.formDisplay.value.trim() };
+      const isEng = isEnglishAnswerQuiz(previewDraft);
 
       if (rawKana && rawKana.trim() !== normalizedKana) {
-        el.kanaNormalizeHint.textContent = `ひらがな判定用に変換: 「${normalizedKana}」`;
+        el.kanaNormalizeHint.textContent = isEng
+          ? `英語解答として自動変換・判定: 「${normalizedKana.toLowerCase()}」`
+          : `ひらがな判定用に変換: 「${normalizedKana}」`;
+        el.kanaNormalizeHint.classList.remove('hidden');
+      } else if (isEng && normalizedKana) {
+        el.kanaNormalizeHint.textContent = `🔤 英語解答モード（ローマ字変換せず英字「${normalizedKana.toLowerCase()}」を直接判定）`;
         el.kanaNormalizeHint.classList.remove('hidden');
       } else {
         el.kanaNormalizeHint.classList.add('hidden');
@@ -4957,14 +5097,20 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
         ? 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30'
         : 'px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/20 text-slate-400 border border-slate-500/30';
 
-      el.previewGenreBadge.textContent = GENRE_LABELS[genre] || '💡 クイズ';
+      el.previewGenreBadge.textContent = GENRE_LABELS[genre] || (isEng ? '🔤 英語クイズ' : '💡 クイズ');
       el.previewQuestionText.textContent = q;
       el.previewCircles.textContent = normalizedKana ? `伏せ字: ${'〇'.repeat(normalizedKana.length)}` : '伏せ字: -';
-      el.previewAnswerText.textContent = normalizedKana ? `${display}（${normalizedKana}）` : display;
+      el.previewAnswerText.textContent = normalizedKana
+        ? (isEng ? `${display}（英語: ${normalizedKana.toLowerCase()}）` : `${display}（${normalizedKana}）`)
+        : display;
 
       if (normalizedKana) {
-        const tracker = new GuidedRomajiTracker(normalizedKana);
-        el.previewRomajiSample.textContent = tracker.getDisplayParts().remaining;
+        if (isEng) {
+          el.previewRomajiSample.textContent = normalizedKana.toLowerCase();
+        } else {
+          const tracker = new GuidedRomajiTracker(normalizedKana);
+          el.previewRomajiSample.textContent = tracker.getDisplayParts().remaining;
+        }
       } else {
         el.previewRomajiSample.textContent = '-';
       }
@@ -5170,31 +5316,35 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
       const quiz = state.testPlay.quiz;
       if (!quiz) return;
       el.testPlayQuestion.textContent = quiz.q;
+      const isEng = isEnglishAnswerQuiz(quiz);
+      const targetStr = isEng ? getTargetEnglishAnswer(quiz) : quiz.kana;
 
       if (state.testPlay.hintStage === 0) {
-        el.testPlayHintText.textContent = `文字数: ${quiz.kana.length}文字（${'〇'.repeat(quiz.kana.length)}）`;
+        el.testPlayHintText.textContent = `文字数: ${targetStr.length}文字（${'〇'.repeat(targetStr.length)}）`;
       } else if (state.testPlay.hintStage === 1) {
         el.testPlayHintText.textContent = `ヒント: ${quiz.hint}`;
       } else {
-        el.testPlayHintText.textContent = `答え: ${quiz.display}（${quiz.kana}）`;
+        el.testPlayHintText.textContent = isEng
+          ? `答え: ${quiz.display}（英語入力: ${targetStr}）`
+          : `答え: ${quiz.display}（${quiz.kana}）`;
       }
 
       el.testPlaySlots.innerHTML = '';
-      const converted = state.testPlay.hintStage < 2
-        ? convertRomajiBufferToKana(state.testPlay.freeRomajiBuffer)
-        : '';
+      const converted = isEng
+        ? state.testPlay.freeRomajiBuffer.toLowerCase()
+        : (state.testPlay.hintStage < 2 ? convertRomajiBufferToKana(state.testPlay.freeRomajiBuffer) : '');
       const guidedParts = state.testPlay.guidedTracker.getDisplayParts();
 
-      for (let i = 0; i < quiz.kana.length; i++) {
+      for (let i = 0; i < targetStr.length; i++) {
         const box = document.createElement('div');
         box.className = 'w-9 h-10 rounded-xl border flex items-center justify-center font-extrabold text-base ';
-        if (state.testPlay.hintStage < 2) {
+        if (isEng || state.testPlay.hintStage < 2) {
           const ch = converted[i];
           if (ch !== undefined) {
-            box.className += ch === quiz.kana[i]
+            box.className += ch === targetStr[i]
               ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400'
               : 'bg-amber-500/15 border-amber-500 text-amber-400';
-            box.textContent = ch;
+            box.textContent = isEng ? ch.toUpperCase() : ch;
           } else {
             box.className += 'bg-slate-100 dark:bg-slate-800 border-dashed border-slate-300 dark:border-slate-700 text-slate-400';
             box.textContent = '？';
@@ -5204,12 +5354,16 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
           box.className += done
             ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400'
             : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-300';
-          box.textContent = quiz.kana[i];
+          box.textContent = targetStr[i];
         }
         el.testPlaySlots.appendChild(box);
       }
 
-      if (state.testPlay.hintStage < 2) {
+      if (isEng) {
+        el.testPlayRomaji.innerHTML = state.testPlay.freeRomajiBuffer
+          ? `<span class="text-sky-400 font-bold">${escapeHtml(state.testPlay.freeRomajiBuffer)}</span>`
+          : `<span class="text-slate-400 text-xs font-sans">英語の答えをそのまま英字で入力してください</span>`;
+      } else if (state.testPlay.hintStage < 2) {
         el.testPlayRomaji.innerHTML = state.testPlay.freeRomajiBuffer
           ? `<span class="text-amber-400 font-bold">${escapeHtml(state.testPlay.freeRomajiBuffer)}</span>`
           : `<span class="text-slate-400 text-xs font-sans">ローマ字で答えを入力してください</span>`;
@@ -5223,7 +5377,28 @@ create policy "Public upsert blocked_users" on public.blocked_users for all usin
       const norm = normalizeKeyInput(rawChar);
       if (!norm) return;
 
+      const isEng = isEnglishAnswerQuiz(state.testPlay.quiz);
+      const targetStr = isEng ? getTargetEnglishAnswer(state.testPlay.quiz) : state.testPlay.quiz.kana;
+
       for (const ch of norm) {
+        if (isEng) {
+          const expectedChar = targetStr[state.testPlay.freeRomajiBuffer.length];
+          if (expectedChar && ch === expectedChar) {
+            sfx.playKey();
+            state.testPlay.freeRomajiBuffer += ch;
+            renderTestPlayView();
+            if (state.testPlay.freeRomajiBuffer === targetStr) {
+              state.testPlay.solved = true;
+              sfx.playSparkCorrect(true);
+              el.testPlaySuccessBanner.classList.remove('hidden');
+              return;
+            }
+          } else {
+            sfx.playMiss();
+          }
+          continue;
+        }
+
         if (state.testPlay.hintStage < 2) {
           sfx.playKey();
           state.testPlay.freeRomajiBuffer += ch;
